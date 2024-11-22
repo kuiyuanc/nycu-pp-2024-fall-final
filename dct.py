@@ -32,7 +32,6 @@ def idct_2d(dct_matrix):
 
     return image
 
-
 # 1D-DCT (for rows and columns)
 def dct_1d(signal):
     N = len(signal)
@@ -68,51 +67,56 @@ def calculate_psnr(original, reconstructed):
     psnr = 20 * np.log10(max_pixel / np.sqrt(mse))
     return psnr
 
-# Load the image and convert to grayscale
+# Load the image
 image = cv2.imread('lena.png')
-grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-# resize the image to 256x256
-grayscale_image = cv2.resize(grayscale_image, (256, 256))
+# Resize the image to 256x256
+image = cv2.resize(image, (256, 256))
 
 # Convert to float32 for OpenCV DCT
-grayscale_image_float = np.float32(grayscale_image)
+image_float = np.float32(image)
 
-# Apply optimized 2D-DCT using two 1D-DCTs
+# Apply optimized 2D-DCT using two 1D-DCTs to each channel
+dct_optimized = np.zeros_like(image_float)
 start_time = time.time()
-dct_optimized = dct_2d(grayscale_image_float)
+for channel in range(3):
+    dct_optimized[:, :, channel] = dct_2d(image_float[:, :, channel])
 end_time = time.time()
 print(f"Optimized 2D-DCT time (two 1D-DCTs): {end_time - start_time:.4f} seconds")
 
-reconstructed_image = idct_2d(dct_optimized)
+# Apply optimized 2D-IDCT using two 1D-IDCTs to each channel
+reconstructed_image = np.zeros_like(image_float)
+for channel in range(3):
+    reconstructed_image[:, :, channel] = idct_2d(dct_optimized[:, :, channel])
+
 # Clip to valid range [0, 255]
 reconstructed_image = np.clip(reconstructed_image, 0, 255).astype(np.uint8)
 
 # Calculate PSNR between the original and reconstructed image
-psnr_brute = calculate_psnr(grayscale_image, reconstructed_image)
+psnr_brute = calculate_psnr(image, reconstructed_image)
 print(f"PSNR: {psnr_brute:.2f} dB")
 
 # Display results
 plt.subplot(1, 2, 1)
-plt.imshow(grayscale_image, cmap='gray')
+plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 plt.title('Original Image')
 
 plt.subplot(1, 2, 2)
-plt.imshow(reconstructed_image, cmap='gray')
+plt.imshow(cv2.cvtColor(reconstructed_image, cv2.COLOR_BGR2RGB))
 plt.title(f'Reconstructed - PSNR: {psnr_brute:.2f} dB')
 
 plt.show()
 
 # Compare the results between brute force and optimized
-plt.imshow(np.log(np.abs(dct_optimized) + 1), cmap='gray')
+plt.imshow(np.log(np.abs(dct_optimized[:, :, 0]) + 1), cmap='gray')
 plt.title('DCT (Optimized using two 1D-DCT)')
 plt.show()
 
-start_time = time.time()
-dct_cv2 = cv2.dct(grayscale_image_float)
-end_time = time.time()
-print(f"cv2 dct {end_time - start_time:.4f} seconds")
-idct_cv2 = cv2.idct(dct_cv2)
-idct_cv2 = np.clip(idct_cv2, 0, 255).astype(np.uint8)
-psnr_cv2 = calculate_psnr(grayscale_image, idct_cv2)
-print(f"PSNR (cv2): {psnr_cv2:.2f} dB")
+# start_time = time.time()
+# dct_cv2 = cv2.dct(image_float)
+# end_time = time.time()
+# print(f"cv2 dct {end_time - start_time:.4f} seconds")
+# idct_cv2 = cv2.idct(dct_cv2)
+# idct_cv2 = np.clip(idct_cv2, 0, 255).astype(np.uint8)
+# psnr_cv2 = calculate_psnr(image, idct_cv2)
+# print(f"PSNR (cv2): {psnr_cv2:.2f} dB")
