@@ -135,7 +135,7 @@ int main() {
     // Save the DCT image
     Mat dct_image;
     merge(dct_channels, dct_image);
-    imwrite("dct_image.png", dct_image);
+    imwrite("output/dct_image.png", dct_image);
 
     // Apply optimized 2D-IDCT using two 1D-IDCTs
     auto idct_start = chrono::high_resolution_clock::now();
@@ -158,7 +158,7 @@ int main() {
          << chrono::duration<double>(merge_end - merge_start).count() << " seconds" << endl;
 
     // Save the reconstructed image
-    imwrite("reconstructed_image.png", reconstructed_image);
+    imwrite("output/reconstructed_image.png", reconstructed_image);
 
     // Calculate PSNR
     auto psnr_start = chrono::high_resolution_clock::now();
