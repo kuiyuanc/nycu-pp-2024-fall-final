@@ -1,0 +1,9 @@
+services:
+  dct_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./lena.png:/app/lena.png
+      - ./output:/app/output
+    command: ["./serial"]
