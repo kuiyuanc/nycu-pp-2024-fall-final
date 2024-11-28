@@ -18,6 +18,17 @@ Mat channel_data;
 }  // namespace dct
 }  // namespace ro
 
+// read-write
+namespace rw {
+namespace idct {
+Mat image;
+}  // namespace idct
+
+namespace dct {
+Mat dct_matrix;
+}  // namespace dct
+}  // namespace rw
+
 // 1D-IDCT
 vector<double> idct_1d(const vector<double>& signal) {
     int N = signal.size();
@@ -37,7 +48,7 @@ vector<double> idct_1d(const vector<double>& signal) {
 Mat idct_2d(const Mat& dct_matrix) {
     int rows = dct_matrix.rows;
     int cols = dct_matrix.cols;
-    Mat image(rows, cols, CV_32F, Scalar(0));
+    rw::idct::image = Mat(rows, cols, CV_32F, Scalar(0));
 
     // Step 1: Apply 1D-IDCT to each column
     for (int j = 0; j < cols; ++j) {
@@ -46,20 +57,20 @@ Mat idct_2d(const Mat& dct_matrix) {
             col[i] = dct_matrix.at<float>(i, j);
         vector<double> idct_col = idct_1d(col);
         for (int i = 0; i < rows; ++i)
-            image.at<float>(i, j) = idct_col[i];
+            rw::idct::image.at<float>(i, j) = idct_col[i];
     }
 
     // Step 2: Apply 1D-IDCT to each row
     for (int i = 0; i < rows; ++i) {
         vector<double> row(cols);
         for (int j = 0; j < cols; ++j)
-            row[j] = image.at<float>(i, j);
+            row[j] = rw::idct::image.at<float>(i, j);
         vector<double> idct_row = idct_1d(row);
         for (int j = 0; j < cols; ++j)
-            image.at<float>(i, j) = idct_row[j];
+            rw::idct::image.at<float>(i, j) = idct_row[j];
     }
 
-    return image;
+    return rw::idct::image;
 }
 
 // 1D-DCT
@@ -80,7 +91,7 @@ vector<double> dct_1d(const vector<double>& signal) {
 Mat dct_2d(const Mat& image) {
     int rows = image.rows;
     int cols = image.cols;
-    Mat dct_matrix(rows, cols, CV_32F);
+    rw::dct::dct_matrix = Mat(rows, cols, CV_32F);
 
     // Step 1: Apply 1D-DCT to each row
     for (int i = 0; i < rows; ++i) {
@@ -89,20 +100,20 @@ Mat dct_2d(const Mat& image) {
             row[j] = image.at<float>(i, j);
         vector<double> dct_row = dct_1d(row);
         for (int j = 0; j < cols; ++j)
-            dct_matrix.at<float>(i, j) = dct_row[j];
+            rw::dct::dct_matrix.at<float>(i, j) = dct_row[j];
     }
 
     // Step 2: Apply 1D-DCT to each column
     for (int j = 0; j < cols; ++j) {
         vector<double> col(rows);
         for (int i = 0; i < rows; ++i)
-            col[i] = dct_matrix.at<float>(i, j);
+            col[i] = rw::dct::dct_matrix.at<float>(i, j);
         vector<double> dct_col = dct_1d(col);
         for (int i = 0; i < rows; ++i)
-            dct_matrix.at<float>(i, j) = dct_col[i];
+            rw::dct::dct_matrix.at<float>(i, j) = dct_col[i];
     }
 
-    return dct_matrix;
+    return rw::dct::dct_matrix;
 }
 
 // PSNR Calculation
