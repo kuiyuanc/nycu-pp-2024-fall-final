@@ -7,6 +7,17 @@
 using namespace std;
 using namespace cv;
 
+// read-only
+namespace ro {
+namespace idct {
+Mat dct_channel;
+}  // namespace idct
+
+namespace dct {
+Mat channel_data;
+}  // namespace dct
+}  // namespace ro
+
 // 1D-IDCT
 vector<double> idct_1d(const vector<double>& signal) {
     int N = signal.size();
@@ -124,9 +135,8 @@ int main() {
     vector<Mat> dct_channels(3);
     auto dct_start = chrono::high_resolution_clock::now();
     for (int channel = 0; channel < 3; ++channel) {
-        Mat channel_data;
-        extractChannel(image_float, channel_data, channel);
-        dct_channels[channel] = dct_2d(channel_data);
+        extractChannel(image_float, ro::dct::channel_data, channel);
+        dct_channels[channel] = dct_2d(ro::dct::channel_data);
     }
     auto dct_end = chrono::high_resolution_clock::now();
     cout << "Optimized 2D-DCT time: "
@@ -141,7 +151,8 @@ int main() {
     auto idct_start = chrono::high_resolution_clock::now();
     vector<Mat> reconstructed_channels(3);
     for (int channel = 0; channel < 3; ++channel) {
-        reconstructed_channels[channel] = idct_2d(dct_channels[channel]);
+        ro::idct::dct_channel = dct_channels[channel];
+        reconstructed_channels[channel] = idct_2d(ro::idct::dct_channel);
     }
     auto idct_end = chrono::high_resolution_clock::now();
     cout << "Optimized 2D-IDCT time: "
