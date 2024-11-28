@@ -46,16 +46,6 @@ Mat dct_matrix;
 }  // namespace dct
 }  // namespace rw
 
-map<string, string> parse_args(int argc, char* argv[]) {
-    map<string, string> args;
-    for (int i = 1; i < argc; i++) {
-        string arg = argv[i];
-        if (arg.find("--")) continue;
-        args[arg.substr(2)] = i + 1 < argc && string(argv[i + 1]).find("-") != 0 ? argv[++i] : "";
-    }
-    return args;
-}
-
 // 1D-IDCT
 vector<double> idct_1d(const vector<double>& signal) {
     int N = signal.size();
@@ -234,6 +224,7 @@ Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& 
 
     return rw::dct::dct_matrix;
 }
+}  // namespace dct_pthread
 
 // PSNR Calculation
 double calculate_psnr(const Mat& original, const Mat& reconstructed) {
@@ -246,7 +237,16 @@ double calculate_psnr(const Mat& original, const Mat& reconstructed) {
     double max_pixel = 255.0;
     return 20.0 * log10(max_pixel / sqrt(mse));
 }
-}  // namespace dct_pthread
+
+map<string, string> parse_args(int argc, char* argv[]) {
+    map<string, string> args;
+    for (int i = 1; i < argc; i++) {
+        string arg = argv[i];
+        if (arg.find("--")) continue;
+        args[arg.substr(2)] = i + 1 < argc && string(argv[i + 1]).find("-") != 0 ? argv[++i] : "";
+    }
+    return args;
+}
 
 int main(int argc, char* argv[]) {
     int num_threads = 4;
