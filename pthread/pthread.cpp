@@ -285,8 +285,8 @@ int main(int argc, char* argv[]) {
     vector<Mat> dct_channels(3);
     auto dct_start = chrono::high_resolution_clock::now();
     for (int channel = 0; channel < 3; ++channel) {
-        extractChannel(image_float, ro::dct::channel_data, channel);
-        dct_channels[channel] = dct_2d(ro::dct::channel_data, num_threads, partition, mode);
+        extractChannel(image_float, dct_pthread::ro::dct::channel_data, channel);
+        dct_channels[channel] = dct_pthread::dct_2d(dct_pthread::ro::dct::channel_data, num_threads, partition, mode);
     }
     auto dct_end = chrono::high_resolution_clock::now();
     cout << "Optimized 2D-DCT time: "
@@ -301,8 +301,8 @@ int main(int argc, char* argv[]) {
     auto idct_start = chrono::high_resolution_clock::now();
     vector<Mat> reconstructed_channels(3);
     for (int channel = 0; channel < 3; ++channel) {
-        ro::idct::dct_channel = dct_channels[channel];
-        reconstructed_channels[channel] = idct_2d(ro::idct::dct_channel, num_threads, partition, mode);
+        dct_pthread::ro::idct::dct_channel = dct_channels[channel];
+        reconstructed_channels[channel] = dct_pthread::idct_2d(dct_pthread::ro::idct::dct_channel, num_threads, partition, mode);
     }
     auto idct_end = chrono::high_resolution_clock::now();
     cout << "Optimized 2D-IDCT time: "
