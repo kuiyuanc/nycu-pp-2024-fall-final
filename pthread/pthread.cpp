@@ -70,6 +70,30 @@ vector<double> idct_1d(const vector<double>& signal) {
     return result;
 }
 
+void* sub_idct_2d(void* thread) {
+    int        thread_id{long(thread)};
+    const Mat& dct_matrix{ro::idct::dct_channel};
+    if (ro::outer_loop_direction == direction::kRow) {
+        for (int i = thread_id * ro::rows_per_thread; i < thread_id * ro::rows_per_thread + ro::rows_per_thread; ++i) {
+            vector<double> row(ro::cols);
+            for (int j = 0; j < ro::cols; ++j)
+                row[j] = rw::idct::image.at<float>(i, j);
+            vector<double> idct_row = idct_1d(row);
+            for (int j = 0; j < ro::cols; ++j)
+                rw::idct::image.at<float>(i, j) = idct_row[j];
+        }
+    } else {
+        for (int j = thread_id * ro::cols_per_thread; j < thread_id * ro::cols_per_thread + ro::cols_per_thread; ++j) {
+            vector<double> col(ro::rows);
+            for (int i = 0; i < ro::rows; ++i)
+                col[i] = dct_matrix.at<float>(i, j);
+            vector<double> idct_col = idct_1d(col);
+            for (int i = 0; i < ro::rows; ++i)
+                rw::idct::image.at<float>(i, j) = idct_col[i];
+        }
+    }
+}
+
 // 2D-IDCT using two 1D-IDCTs
 Mat idct_2d(const Mat& dct_matrix, const int& num_threads_assigned = 4, const string& partition_assigned = "block", const string& mode = "2D") {
     ro::rows = dct_matrix.rows;
@@ -79,8 +103,17 @@ Mat idct_2d(const Mat& dct_matrix, const int& num_threads_assigned = 4, const st
     ro::num_threads = num_threads_assigned;
     ro::partition   = partition_assigned;
 
+    ro::rows_per_thread = ro::rows / ro::num_threads;
+    ro::cols_per_thread = ro::cols / ro::num_threads;
+
+    vector<pthread_t> thread_handles(ro::num_threads - 1);
+
     // Step 1: Apply 1D-IDCT to each column
-    for (int j = 0; j < ro::cols; ++j) {
+    ro::outer_loop_direction = direction::kCol;
+    for (long thread = 0; thread < ro::num_threads - 1; ++thread) {
+        pthread_create(&thread_handles[thread], nullptr, sub_idct_2d, (void*)thread);
+    }
+    for (int j = (ro::num_threads - 1) * ro::cols_per_thread; j < ro::cols; ++j) {
         vector<double> col(ro::rows);
         for (int i = 0; i < ro::rows; ++i)
             col[i] = dct_matrix.at<float>(i, j);
@@ -88,15 +121,25 @@ Mat idct_2d(const Mat& dct_matrix, const int& num_threads_assigned = 4, const st
         for (int i = 0; i < ro::rows; ++i)
             rw::idct::image.at<float>(i, j) = idct_col[i];
     }
+    for (int thread = 0; thread < ro::num_threads - 1; ++thread) {
+        pthread_join(thread_handles[thread], nullptr);
+    }
 
     // Step 2: Apply 1D-IDCT to each row
-    for (int i = 0; i < ro::rows; ++i) {
+    ro::outer_loop_direction = direction::kRow;
+    for (long thread = 0; thread < ro::num_threads - 1; ++thread) {
+        pthread_create(&thread_handles[thread], nullptr, sub_idct_2d, (void*)thread);
+    }
+    for (int i = (ro::num_threads - 1) * ro::rows_per_thread; i < ro::rows; ++i) {
         vector<double> row(ro::cols);
         for (int j = 0; j < ro::cols; ++j)
             row[j] = rw::idct::image.at<float>(i, j);
         vector<double> idct_row = idct_1d(row);
         for (int j = 0; j < ro::cols; ++j)
             rw::idct::image.at<float>(i, j) = idct_row[j];
+    }
+    for (int thread = 0; thread < ro::num_threads - 1; ++thread) {
+        pthread_join(thread_handles[thread], nullptr);
     }
 
     return rw::idct::image;
