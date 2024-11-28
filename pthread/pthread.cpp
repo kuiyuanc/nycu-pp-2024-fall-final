@@ -4,8 +4,16 @@
 #include <opencv2/opencv.hpp>
 #include <chrono>
 
+#include <pthread.h>
+
 using namespace std;
 using namespace cv;
+
+// direction of 1D
+namespace direction {
+constexpr int kRow{0};
+constexpr int kCol{1};
+}  // namespace direction
 
 // read-only
 namespace ro {
@@ -19,8 +27,11 @@ Mat channel_data;
 
 int    rows;
 int    cols;
+int    rows_per_thread;
+int    cols_per_thread;
 int    num_threads;
 string partition;
+int    outer_loop_direction;
 }  // namespace ro
 
 // read-write
@@ -105,6 +116,30 @@ vector<double> dct_1d(const vector<double>& signal) {
     return result;
 }
 
+void* sub_dct_2d(void* thread) {
+    int        thread_id{long(thread)};
+    const Mat& image{ro::dct::channel_data};
+    if (ro::outer_loop_direction == direction::kRow) {
+        for (int i = thread_id * ro::rows_per_thread; i < thread_id * ro::rows_per_thread + ro::rows_per_thread; ++i) {
+            vector<double> row(ro::cols);
+            for (int j = 0; j < ro::cols; ++j)
+                row[j] = image.at<float>(i, j);
+            vector<double> dct_row = dct_1d(row);
+            for (int j = 0; j < ro::cols; ++j)
+                rw::dct::dct_matrix.at<float>(i, j) = dct_row[j];
+        }
+    } else {
+        for (int j = thread_id * ro::cols_per_thread; j < thread_id * ro::cols_per_thread + ro::cols_per_thread; ++j) {
+            vector<double> col(ro::rows);
+            for (int i = 0; i < ro::rows; ++i)
+                col[i] = rw::dct::dct_matrix.at<float>(i, j);
+            vector<double> dct_col = dct_1d(col);
+            for (int i = 0; i < ro::rows; ++i)
+                rw::dct::dct_matrix.at<float>(i, j) = dct_col[i];
+        }
+    }
+}
+
 // 2D-DCT using two 1D-DCTs
 Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& partition_assigned = "block", const string& mode = "2D") {
     ro::rows = image.rows;
@@ -114,8 +149,17 @@ Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& 
     ro::num_threads = num_threads_assigned;
     ro::partition   = partition_assigned;
 
+    ro::rows_per_thread = ro::rows / ro::num_threads;
+    ro::cols_per_thread = ro::cols / ro::num_threads;
+
+    vector<pthread_t> thread_handles(ro::num_threads - 1);
+
     // Step 1: Apply 1D-DCT to each row
-    for (int i = 0; i < ro::rows; ++i) {
+    ro::outer_loop_direction = direction::kRow;
+    for (long thread = 0; thread < ro::num_threads - 1; ++thread) {
+        pthread_create(&thread_handles[thread], nullptr, sub_dct_2d, (void*)thread);
+    }
+    for (int i = (ro::num_threads - 1) * ro::rows_per_thread; i < ro::rows; ++i) {
         vector<double> row(ro::cols);
         for (int j = 0; j < ro::cols; ++j)
             row[j] = image.at<float>(i, j);
@@ -123,15 +167,25 @@ Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& 
         for (int j = 0; j < ro::cols; ++j)
             rw::dct::dct_matrix.at<float>(i, j) = dct_row[j];
     }
+    for (int thread = 0; thread < ro::num_threads - 1; ++thread) {
+        pthread_join(thread_handles[thread], nullptr);
+    }
 
     // Step 2: Apply 1D-DCT to each column
-    for (int j = 0; j < ro::cols; ++j) {
+    ro::outer_loop_direction = direction::kCol;
+    for (long thread = 0; thread < ro::num_threads - 1; ++thread) {
+        pthread_create(&thread_handles[thread], nullptr, sub_dct_2d, (void*)thread);
+    }
+    for (int j = (ro::num_threads - 1) * ro::cols_per_thread; j < ro::cols; ++j) {
         vector<double> col(ro::rows);
         for (int i = 0; i < ro::rows; ++i)
             col[i] = rw::dct::dct_matrix.at<float>(i, j);
         vector<double> dct_col = dct_1d(col);
         for (int i = 0; i < ro::rows; ++i)
             rw::dct::dct_matrix.at<float>(i, j) = dct_col[i];
+    }
+    for (int thread = 0; thread < ro::num_threads - 1; ++thread) {
+        pthread_join(thread_handles[thread], nullptr);
     }
 
     return rw::dct::dct_matrix;
