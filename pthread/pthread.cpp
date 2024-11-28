@@ -16,6 +16,9 @@ Mat dct_channel;
 namespace dct {
 Mat channel_data;
 }  // namespace dct
+
+int    num_threads;
+string partition;
 }  // namespace ro
 
 // read-write
@@ -28,6 +31,16 @@ namespace dct {
 Mat dct_matrix;
 }  // namespace dct
 }  // namespace rw
+
+map<string, string> parse_args(int argc, char* argv[]) {
+    map<string, string> args;
+    for (int i = 1; i < argc; i++) {
+        string arg = argv[i];
+        if (arg.find("--")) continue;
+        args[arg.substr(2)] = i + 1 < argc && string(argv[i + 1]).find("-") != 0 ? argv[++i] : "";
+    }
+    return args;
+}
 
 // 1D-IDCT
 vector<double> idct_1d(const vector<double>& signal) {
@@ -45,10 +58,13 @@ vector<double> idct_1d(const vector<double>& signal) {
 }
 
 // 2D-IDCT using two 1D-IDCTs
-Mat idct_2d(const Mat& dct_matrix) {
+Mat idct_2d(const Mat& dct_matrix, const int& num_threads_assigned = 4, const string& partition_assigned = "block", const string& mode = "2D") {
     int rows = dct_matrix.rows;
     int cols = dct_matrix.cols;
     rw::idct::image = Mat(rows, cols, CV_32F, Scalar(0));
+
+    ro::num_threads = num_threads_assigned;
+    ro::partition   = partition_assigned;
 
     // Step 1: Apply 1D-IDCT to each column
     for (int j = 0; j < cols; ++j) {
@@ -88,10 +104,13 @@ vector<double> dct_1d(const vector<double>& signal) {
 }
 
 // 2D-DCT using two 1D-DCTs
-Mat dct_2d(const Mat& image) {
+Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& partition_assigned = "block", const string& mode = "2D") {
     int rows = image.rows;
     int cols = image.cols;
     rw::dct::dct_matrix = Mat(rows, cols, CV_32F);
+
+    ro::num_threads = num_threads_assigned;
+    ro::partition   = partition_assigned;
 
     // Step 1: Apply 1D-DCT to each row
     for (int i = 0; i < rows; ++i) {
@@ -128,7 +147,26 @@ double calculate_psnr(const Mat& original, const Mat& reconstructed) {
     return 20.0 * log10(max_pixel / sqrt(mse));
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    int num_threads = 4;
+    string partition("block");
+    string mode("2D");
+
+    // load command-line arguments
+    map<string, string> args = parse_args(argc, argv);
+    if (args.find("num-threads") != args.end()) {
+        num_threads = stoi(args["num-threads"]);
+    }
+    if (args.find("partition") != args.end()) {
+        partition = args["partition"];
+    }
+    if (args.find("mode") != args.end()) {
+        mode = args["mode"];
+    }
+    cout << "Number of threads: " << num_threads << endl;
+    cout << "Partition: " << partition << endl;
+    cout << "Mode: " << mode << endl;
+
     // Load the image
     Mat image = imread("lena.png", IMREAD_COLOR);
     if (image.empty()) {
@@ -147,7 +185,7 @@ int main() {
     auto dct_start = chrono::high_resolution_clock::now();
     for (int channel = 0; channel < 3; ++channel) {
         extractChannel(image_float, ro::dct::channel_data, channel);
-        dct_channels[channel] = dct_2d(ro::dct::channel_data);
+        dct_channels[channel] = dct_2d(ro::dct::channel_data, num_threads, partition, mode);
     }
     auto dct_end = chrono::high_resolution_clock::now();
     cout << "Optimized 2D-DCT time: "
@@ -163,7 +201,7 @@ int main() {
     vector<Mat> reconstructed_channels(3);
     for (int channel = 0; channel < 3; ++channel) {
         ro::idct::dct_channel = dct_channels[channel];
-        reconstructed_channels[channel] = idct_2d(ro::idct::dct_channel);
+        reconstructed_channels[channel] = idct_2d(ro::idct::dct_channel, num_threads, partition, mode);
     }
     auto idct_end = chrono::high_resolution_clock::now();
     cout << "Optimized 2D-IDCT time: "
