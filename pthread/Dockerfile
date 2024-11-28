@@ -26,4 +26,4 @@ RUN sed -i 's/^    /\t/' Makefile
 RUN make
 
 # Run the program during container startup
-CMD ["./serial"]
+CMD ["./pthread"]

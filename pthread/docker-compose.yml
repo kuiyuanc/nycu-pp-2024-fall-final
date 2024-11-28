@@ -6,4 +6,4 @@ services:
     volumes:
       - ./lena.png:/app/lena.png
       - ./output:/app/output
-    command: ["./serial"]
+    command: ["./pthread"]
