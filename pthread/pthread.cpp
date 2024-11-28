@@ -9,6 +9,7 @@
 using namespace std;
 using namespace cv;
 
+namespace dct_pthread {
 // direction of 1D
 namespace direction {
 constexpr int kRow{0};
@@ -245,6 +246,7 @@ double calculate_psnr(const Mat& original, const Mat& reconstructed) {
     double max_pixel = 255.0;
     return 20.0 * log10(max_pixel / sqrt(mse));
 }
+}  // namespace dct_pthread
 
 int main(int argc, char* argv[]) {
     int num_threads = 4;
