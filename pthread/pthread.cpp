@@ -17,6 +17,8 @@ namespace dct {
 Mat channel_data;
 }  // namespace dct
 
+int    rows;
+int    cols;
 int    num_threads;
 string partition;
 }  // namespace ro
@@ -59,30 +61,30 @@ vector<double> idct_1d(const vector<double>& signal) {
 
 // 2D-IDCT using two 1D-IDCTs
 Mat idct_2d(const Mat& dct_matrix, const int& num_threads_assigned = 4, const string& partition_assigned = "block", const string& mode = "2D") {
-    int rows = dct_matrix.rows;
-    int cols = dct_matrix.cols;
-    rw::idct::image = Mat(rows, cols, CV_32F, Scalar(0));
+    ro::rows = dct_matrix.rows;
+    ro::cols = dct_matrix.cols;
+    rw::idct::image = Mat(ro::rows, ro::cols, CV_32F, Scalar(0));
 
     ro::num_threads = num_threads_assigned;
     ro::partition   = partition_assigned;
 
     // Step 1: Apply 1D-IDCT to each column
-    for (int j = 0; j < cols; ++j) {
-        vector<double> col(rows);
-        for (int i = 0; i < rows; ++i)
+    for (int j = 0; j < ro::cols; ++j) {
+        vector<double> col(ro::rows);
+        for (int i = 0; i < ro::rows; ++i)
             col[i] = dct_matrix.at<float>(i, j);
         vector<double> idct_col = idct_1d(col);
-        for (int i = 0; i < rows; ++i)
+        for (int i = 0; i < ro::rows; ++i)
             rw::idct::image.at<float>(i, j) = idct_col[i];
     }
 
     // Step 2: Apply 1D-IDCT to each row
-    for (int i = 0; i < rows; ++i) {
-        vector<double> row(cols);
-        for (int j = 0; j < cols; ++j)
+    for (int i = 0; i < ro::rows; ++i) {
+        vector<double> row(ro::cols);
+        for (int j = 0; j < ro::cols; ++j)
             row[j] = rw::idct::image.at<float>(i, j);
         vector<double> idct_row = idct_1d(row);
-        for (int j = 0; j < cols; ++j)
+        for (int j = 0; j < ro::cols; ++j)
             rw::idct::image.at<float>(i, j) = idct_row[j];
     }
 
@@ -105,30 +107,30 @@ vector<double> dct_1d(const vector<double>& signal) {
 
 // 2D-DCT using two 1D-DCTs
 Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& partition_assigned = "block", const string& mode = "2D") {
-    int rows = image.rows;
-    int cols = image.cols;
-    rw::dct::dct_matrix = Mat(rows, cols, CV_32F);
+    ro::rows = image.rows;
+    ro::cols = image.cols;
+    rw::dct::dct_matrix = Mat(ro::rows, ro::cols, CV_32F);
 
     ro::num_threads = num_threads_assigned;
     ro::partition   = partition_assigned;
 
     // Step 1: Apply 1D-DCT to each row
-    for (int i = 0; i < rows; ++i) {
-        vector<double> row(cols);
-        for (int j = 0; j < cols; ++j)
+    for (int i = 0; i < ro::rows; ++i) {
+        vector<double> row(ro::cols);
+        for (int j = 0; j < ro::cols; ++j)
             row[j] = image.at<float>(i, j);
         vector<double> dct_row = dct_1d(row);
-        for (int j = 0; j < cols; ++j)
+        for (int j = 0; j < ro::cols; ++j)
             rw::dct::dct_matrix.at<float>(i, j) = dct_row[j];
     }
 
     // Step 2: Apply 1D-DCT to each column
-    for (int j = 0; j < cols; ++j) {
-        vector<double> col(rows);
-        for (int i = 0; i < rows; ++i)
+    for (int j = 0; j < ro::cols; ++j) {
+        vector<double> col(ro::rows);
+        for (int i = 0; i < ro::rows; ++i)
             col[i] = rw::dct::dct_matrix.at<float>(i, j);
         vector<double> dct_col = dct_1d(col);
-        for (int i = 0; i < rows; ++i)
+        for (int i = 0; i < ro::rows; ++i)
             rw::dct::dct_matrix.at<float>(i, j) = dct_col[i];
     }
 
