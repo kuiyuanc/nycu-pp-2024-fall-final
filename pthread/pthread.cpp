@@ -97,8 +97,8 @@ void* sub_idct_2d(void* thread) {
 
 // 2D-IDCT using two 1D-IDCTs
 Mat idct_2d(const Mat& dct_matrix, const int& num_threads_assigned = 4, const string& partition_assigned = "block", const string& mode = "2D") {
-    ro::rows = dct_matrix.rows;
-    ro::cols = dct_matrix.cols;
+    ro::rows        = dct_matrix.rows;
+    ro::cols        = dct_matrix.cols;
     rw::idct::image = Mat(ro::rows, ro::cols, CV_32F, Scalar(0));
 
     ro::num_threads = num_threads_assigned;
@@ -186,8 +186,8 @@ void* sub_dct_2d(void* thread) {
 
 // 2D-DCT using two 1D-DCTs
 Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& partition_assigned = "block", const string& mode = "2D") {
-    ro::rows = image.rows;
-    ro::cols = image.cols;
+    ro::rows            = image.rows;
+    ro::cols            = image.cols;
     rw::dct::dct_matrix = Mat(ro::rows, ro::cols, CV_32F);
 
     ro::num_threads = num_threads_assigned;
