@@ -1,15 +1,30 @@
-# Makefile for compiling test.cpp with OpenCV
+MODE ?= server
 
-CXX = g++
-CXXFLAGS = -std=c++17 `pkg-config --cflags opencv4`
-LDFLAGS = `pkg-config --libs opencv4`
+CC = g++
+
+CFLAGS = -fopenmp
+LDFLAGS = 
+
 TARGET = serial
 SRC = serial.cpp
+
+ifeq ($(MODE), local)
+    CFLAGS += `pkg-config --cflags opencv4`
+    LDFLAGS += `pkg-config --libs opencv4`
+else ifeq ($(MODE), server)
+    LDFLAGS += -lopencv_core -lopencv_imgproc -lopencv_imgcodecs
+	export CPATH=/opt/spack/var/spack/environments/pp-env/.spack-env/view/include/opencv4:$CPATH
+	export LD_LIBRARY_PATH := /opt/spack/var/spack/environments/pp-env/.spack-env/view/lib:$(LD_LIBRARY_PATH)
+else
+    $(error Unknown MODE: $(MODE))
+endif
 
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-    $(CXX) -o $(TARGET) $(SRC) $(CXXFLAGS) $(LDFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 clean:
-    rm -f $(TARGET)
+	rm -f $(TARGET)
+
+.PHONY: all clean
