@@ -6,7 +6,7 @@ using namespace cv;
 #define BLOCK_SIZE  8
 
 // 優化 1D-DCT: 使用向量化和更好的快取利用
-vector<double> dct_1d(const vector<double>& signal) {
+vector<double> dct_1d_omp(const vector<double>& signal) {
     const int N = signal.size();
     vector<double> result(N, 0.0);
 
@@ -31,7 +31,7 @@ vector<double> dct_1d(const vector<double>& signal) {
 }
 
 // 使用 block 處理和更有效的資料存取
-Mat dct_2d(const Mat& image) {
+Mat dct_2d_omp(const Mat& image) {
     const int rows = image.rows;
     const int cols = image.cols;
     Mat dct_matrix(rows, cols, CV_32F);
@@ -53,7 +53,7 @@ Mat dct_2d(const Mat& image) {
                     row[bj] = image.at<float>(i + bi, j + bj);
                 }
 
-                vector<double> dct_row = dct_1d(row);
+                vector<double> dct_row = dct_1d_omp(row);
                 for (int bj = 0; bj < block_cols; ++bj) {
                     dct_matrix.at<float>(i + bi, j + bj) = dct_row[bj];
                 }
@@ -78,7 +78,7 @@ Mat dct_2d(const Mat& image) {
                     col[bi] = temp_matrix.at<float>(i + bi, j + bj);
                 }
 
-                vector<double> dct_col = dct_1d(col);
+                vector<double> dct_col = dct_1d_omp(col);
                 for (int bi = 0; bi < block_rows; ++bi) {
                     dct_matrix.at<float>(i + bi, j + bj) = dct_col[bi];
                 }
@@ -90,7 +90,7 @@ Mat dct_2d(const Mat& image) {
 }
 
 // 優化 1D-IDCT
-vector<double> idct_1d(const vector<double>& signal) {
+vector<double> idct_1d_omp(const vector<double>& signal) {
     const int N = signal.size();
     vector<double> result(N, 0.0);
 
@@ -123,7 +123,7 @@ vector<double> idct_1d(const vector<double>& signal) {
 }
 
 // 優化 2D-IDCT
-Mat idct_2d(const Mat& dct_matrix) {
+Mat idct_2d_omp(const Mat& dct_matrix) {
     const int rows = dct_matrix.rows;
     const int cols = dct_matrix.cols;
     Mat image(rows, cols, CV_32F);
@@ -142,7 +142,7 @@ Mat idct_2d(const Mat& dct_matrix) {
                     col[bi] = dct_matrix.at<float>(i + bi, j + bj);
                 }
 
-                vector<double> idct_col = idct_1d(col);
+                vector<double> idct_col = idct_1d_omp(col);
                 for (int bi = 0; bi < block_rows; ++bi) {
                     image.at<float>(i + bi, j + bj) = idct_col[bi];
                 }
@@ -166,7 +166,7 @@ Mat idct_2d(const Mat& dct_matrix) {
                     row[bj] = temp_image.at<float>(i + bi, j + bj);
                 }
 
-                vector<double> idct_row = idct_1d(row);
+                vector<double> idct_row = idct_1d_omp(row);
                 for (int bj = 0; bj < block_cols; ++bj) {
                     image.at<float>(i + bi, j + bj) = idct_row[bj];
                 }
@@ -178,27 +178,4 @@ Mat idct_2d(const Mat& dct_matrix) {
 }
 
 
-double calculate_psnr(const Mat& original, const Mat& reconstructed) {
-    // 確保圖像大小和通道一致
-    if (original.size() != reconstructed.size() || original.channels() != reconstructed.channels()) {
-        cerr << "Error: Input images must have the same size and number of channels." << endl;
-        return -1; // 返回錯誤值
-    }
 
-    Mat diff;
-    absdiff(original, reconstructed, diff); // 計算絕對差異
-    diff.convertTo(diff, CV_32F);           // 確保數據為浮點型
-    diff = diff.mul(diff);                  // 計算平方
-
-    // 對多通道圖像進行處理
-    Scalar channel_sum = sum(diff); // 每個通道的平方和
-    double mse = 0.0;
-    for (int i = 0; i < original.channels(); ++i) {
-        mse += channel_sum[i]; // 累加所有通道的誤差
-    }
-    mse /= (original.total() * original.channels()); // 平均均方誤差
-
-    if (mse == 0) return 100.0; // 無誤差時返回最大 PSNR 值
-    double max_pixel = 255.0;   // 最大像素值，適用於 8-bit 圖像
-    return 20.0 * log10(max_pixel / sqrt(mse));
-}

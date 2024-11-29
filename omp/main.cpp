@@ -2,13 +2,12 @@
 #include <opencv2/opencv.hpp>
 #include <omp.h>
 
-#include "common/CycleTimer.h"
 
 using namespace std;
 using namespace cv;
 
-
-
+#include "common/CycleTimer.h"
+#include"common/PSNR.h"
 #include "dct.h"
 
 void load_image(string filename, vector<Mat>& image_channels) {
@@ -29,27 +28,20 @@ void load_image(string filename, vector<Mat>& image_channels) {
 void compress_image_3d(vector<Mat>& image_channels, vector<Mat>& compressed_channels) {
 #pragma omp parallel for schedule(dynamic)
     for (int channel = 0; channel < 3; ++channel) {
-        compressed_channels[channel] = dct_2d(image_channels[channel]);
+        compressed_channels[channel] = dct_2d_omp(image_channels[channel]);
     }
 }
 
 void reconstruct_image(vector<Mat>& compressed_channels, vector<Mat>& reconstructed_channels) {
 #pragma omp parallel for schedule(dynamic)
     for (int channel = 0; channel < 3; ++channel) {
-        reconstructed_channels[channel] = idct_2d(compressed_channels[channel]);
+        reconstructed_channels[channel] = idct_2d_omp(compressed_channels[channel]);
     }
 }
 
 
 int main(int argc, char* argv[]) {
 
-    if (argc < 2) {
-        cerr << "Usage: " << argv[0] << " <image_filename>" << endl;
-        return -1;
-    }
-
-    // printf("%s", argv[1]);
-    // const int num_threads = omp_get_max_threads();
     const int num_threads = omp_get_max_threads();
     omp_set_num_threads(num_threads);
     cout << "Using " << num_threads << " threads" << endl;
@@ -88,7 +80,6 @@ int main(int argc, char* argv[]) {
 
 
 
-
     //
     // Clamp images
     //
@@ -114,10 +105,9 @@ int main(int argc, char* argv[]) {
     // Print results
     //
 
-    printf("Optimized 2D-DCT time:\t\t[%.3f] s\n", (dct_endTime - dct_startTime));
-    // cout << "Optimized 2D-DCT time: " << chrono::duration<double>(dct_end - dct_start).count() << " seconds" << endl;
-    // cout << "Optimized 2D-IDCT time: " << chrono::duration<double>(idct_end - idct_start).count() << " seconds" << endl;
-    // cout << "PSNR calculation time: " << chrono::duration<double>(psnr_end - psnr_start).count() << " seconds" << endl;
+    printf("OpenMP DCT time:\t\t[%.3f] s\n", (dct_endTime - dct_startTime));
+    printf("OpenMP iDCT time:\t\t[%.3f] s\n", (idct_endTime - idct_startTime));
+    printf("PSNR time:\t\t\t[%.3f] s\n", (psnr_endTime - psnr_startTime));
     printf("PSNR:\t\t\t\t[%.3f] dB\n", psnr);
     return 0;
 }
