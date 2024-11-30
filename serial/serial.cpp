@@ -8,6 +8,9 @@
 using namespace std;
 using namespace cv;
 
+#include"common/PSNR.h"
+#define BLOCK_SIZE 8
+
 // 1D-IDCT
 vector<double> idct_1d(const vector<double>& signal) {
     int N = signal.size();
@@ -23,35 +26,6 @@ vector<double> idct_1d(const vector<double>& signal) {
     return result;
 }
 
-// 2D-IDCT using two 1D-IDCTs
-Mat idct_2d(const Mat& dct_matrix) {
-    int rows = dct_matrix.rows;
-    int cols = dct_matrix.cols;
-    Mat image(rows, cols, CV_32F, Scalar(0));
-
-    // Step 1: Apply 1D-IDCT to each column
-    for (int j = 0; j < cols; ++j) {
-        vector<double> col(rows);
-        for (int i = 0; i < rows; ++i)
-            col[i] = dct_matrix.at<float>(i, j);
-        vector<double> idct_col = idct_1d(col);
-        for (int i = 0; i < rows; ++i)
-            image.at<float>(i, j) = idct_col[i];
-    }
-
-    // Step 2: Apply 1D-IDCT to each row
-    for (int i = 0; i < rows; ++i) {
-        vector<double> row(cols);
-        for (int j = 0; j < cols; ++j)
-            row[j] = image.at<float>(i, j);
-        vector<double> idct_row = idct_1d(row);
-        for (int j = 0; j < cols; ++j)
-            image.at<float>(i, j) = idct_row[j];
-    }
-
-    return image;
-}
-
 // 1D-DCT
 vector<double> dct_1d(const vector<double>& signal) {
     int N = signal.size();
@@ -61,7 +35,7 @@ vector<double> dct_1d(const vector<double>& signal) {
         for (int x = 0; x < N; ++x) {
             sum_value += signal[x] * cos(M_PI * (2 * x + 1) * u / (2 * N));
         }
-        result[u] = sum_value * ((u == 0) ? 1 / sqrt(N) : sqrt(2.0 / N));
+        result[u] = sum_value * ((u == 0) ? 1.0 / sqrt(N) : sqrt(2.0 / N));
     }
     return result;
 }
@@ -72,39 +46,94 @@ Mat dct_2d(const Mat& image) {
     int cols = image.cols;
     Mat dct_matrix(rows, cols, CV_32F);
 
-    // Step 1: Apply 1D-DCT to each row
-    for (int i = 0; i < rows; ++i) {
-        vector<double> row(cols);
-        for (int j = 0; j < cols; ++j)
-            row[j] = image.at<float>(i, j);
-        vector<double> dct_row = dct_1d(row);
-        for (int j = 0; j < cols; ++j)
-            dct_matrix.at<float>(i, j) = dct_row[j];
-    }
+    // Process each 8x8 block
+    for (int i = 0; i < rows; i += BLOCK_SIZE) {
+        for (int j = 0; j < cols; j += BLOCK_SIZE) {
+            // Step 1: Apply 1D-DCT to each row within the block
+            for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
+                if (i + bi >= rows) break;  // Boundary check
+                vector<double> row(BLOCK_SIZE, 0.0);
+                for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
+                    if (j + bj < cols) {
+                        row[bj] = image.at<float>(i + bi, j + bj);
+                    }
+                }
+                vector<double> dct_row = dct_1d(row);
+                for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
+                    if (j + bj < cols) {
+                        dct_matrix.at<float>(i + bi, j + bj) = dct_row[bj];
+                    }
+                }
+            }
 
-    // Step 2: Apply 1D-DCT to each column
-    for (int j = 0; j < cols; ++j) {
-        vector<double> col(rows);
-        for (int i = 0; i < rows; ++i)
-            col[i] = dct_matrix.at<float>(i, j);
-        vector<double> dct_col = dct_1d(col);
-        for (int i = 0; i < rows; ++i)
-            dct_matrix.at<float>(i, j) = dct_col[i];
+            // Step 2: Apply 1D-DCT to each column within the block
+            for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
+                if (j + bj >= cols) break;  // Boundary check
+                vector<double> col(BLOCK_SIZE, 0.0);
+                for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
+                    if (i + bi < rows) {
+                        col[bi] = dct_matrix.at<float>(i + bi, j + bj);
+                    }
+                }
+                vector<double> dct_col = dct_1d(col);
+                for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
+                    if (i + bi < rows) {
+                        dct_matrix.at<float>(i + bi, j + bj) = dct_col[bi];
+                    }
+                }
+            }
+        }
     }
 
     return dct_matrix;
 }
 
-// PSNR Calculation
-double calculate_psnr(const Mat& original, const Mat& reconstructed) {
-    Mat diff;
-    absdiff(original, reconstructed, diff);
-    diff.convertTo(diff, CV_32F);
-    diff = diff.mul(diff);
-    double mse = sum(diff)[0] / (original.total());
-    if (mse == 0) return 100;  // No error
-    double max_pixel = 255.0;
-    return 20.0 * log10(max_pixel / sqrt(mse));
+// 2D-IDCT using 8x8 blocks
+Mat idct_2d(const Mat& dct_matrix) {
+    int rows = dct_matrix.rows;
+    int cols = dct_matrix.cols;
+    Mat image(rows, cols, CV_32F, Scalar(0));
+
+    // Process each 8x8 block
+    for (int i = 0; i < rows; i += BLOCK_SIZE) {
+        for (int j = 0; j < cols; j += BLOCK_SIZE) {
+            // Step 1: Apply 1D-IDCT to each column within the block
+            for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
+                if (j + bj >= cols) break;  // Boundary check
+                vector<double> col(BLOCK_SIZE, 0.0);
+                for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
+                    if (i + bi < rows) {
+                        col[bi] = dct_matrix.at<float>(i + bi, j + bj);
+                    }
+                }
+                vector<double> idct_col = idct_1d(col);
+                for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
+                    if (i + bi < rows) {
+                        image.at<float>(i + bi, j + bj) = idct_col[bi];
+                    }
+                }
+            }
+
+            // Step 2: Apply 1D-IDCT to each row within the block
+            for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
+                if (i + bi >= rows) break;  // Boundary check
+                vector<double> row(BLOCK_SIZE, 0.0);
+                for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
+                    if (j + bj < cols) {
+                        row[bj] = image.at<float>(i + bi, j + bj);
+                    }
+                }
+                vector<double> idct_row = idct_1d(row);
+                for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
+                    if (j + bj < cols) {
+                        image.at<float>(i + bi, j + bj) = idct_row[bj];
+                    }
+                }
+            }
+        }
+    }
+
+    return image;
 }
 
 int main() {
@@ -114,7 +143,7 @@ int main() {
         cerr << "Error: Could not load image." << endl;
         return -1;
     }
-    resize(image, image, Size(256, 256));
+    // resize(image, image, Size(256, 256));
     Mat image_float;
     image.convertTo(image_float, CV_32F);
 
