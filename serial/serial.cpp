@@ -2,7 +2,8 @@
 #include <vector>
 #include <cmath>
 #include <opencv2/opencv.hpp>
-#include <chrono>
+// #include <chrono>
+#include "common/CycleTimer.h"
 
 using namespace std;
 using namespace cv;
@@ -118,19 +119,18 @@ int main() {
     image.convertTo(image_float, CV_32F);
 
     // Record start time for entire process
-    auto total_start = chrono::high_resolution_clock::now();
+    double total_start = CycleTimer::currentSeconds();
 
     // Apply optimized 2D-DCT using two 1D-DCTs
     vector<Mat> dct_channels(3);
-    auto dct_start = chrono::high_resolution_clock::now();
+    double dct_start = CycleTimer::currentSeconds();
     for (int channel = 0; channel < 3; ++channel) {
         Mat channel_data;
         extractChannel(image_float, channel_data, channel);
         dct_channels[channel] = dct_2d(channel_data);
     }
-    auto dct_end = chrono::high_resolution_clock::now();
-    cout << "Optimized 2D-DCT time: "
-         << chrono::duration<double>(dct_end - dct_start).count() << " seconds" << endl;
+    double dct_end = CycleTimer::currentSeconds();
+    printf("Optimized 2D-DCT time:\t\t[%.3f] seconds\n", dct_end - dct_start);
 
     // Save the DCT image
     Mat dct_image;
@@ -138,40 +138,36 @@ int main() {
     imwrite("output/dct_image.png", dct_image);
 
     // Apply optimized 2D-IDCT using two 1D-IDCTs
-    auto idct_start = chrono::high_resolution_clock::now();
+    double idct_start = CycleTimer::currentSeconds();
     vector<Mat> reconstructed_channels(3);
     for (int channel = 0; channel < 3; ++channel) {
         reconstructed_channels[channel] = idct_2d(dct_channels[channel]);
     }
-    auto idct_end = chrono::high_resolution_clock::now();
-    cout << "Optimized 2D-IDCT time: "
-         << chrono::duration<double>(idct_end - idct_start).count() << " seconds" << endl;
+    double idct_end = CycleTimer::currentSeconds();
+    printf("Optimized 2D-IDCT time:\t\t[%.3f] seconds\n", idct_end - idct_start);
 
     // Merge reconstructed channels and clip to valid range
-    auto merge_start = chrono::high_resolution_clock::now();
+    double merge_start = CycleTimer::currentSeconds();
     Mat reconstructed_image;
     merge(reconstructed_channels, reconstructed_image);
     reconstructed_image = min(max(reconstructed_image, 0.0f), 255.0f);
     reconstructed_image.convertTo(reconstructed_image, CV_8U);
-    auto merge_end = chrono::high_resolution_clock::now();
-    cout << "Merging and clipping time: "
-         << chrono::duration<double>(merge_end - merge_start).count() << " seconds" << endl;
+    double merge_end = CycleTimer::currentSeconds();
+    printf("Merging and clipping time:\t[%.3f] seconds\n", merge_end - merge_start);
 
     // Save the reconstructed image
     imwrite("output/reconstructed_image.png", reconstructed_image);
 
     // Calculate PSNR
-    auto psnr_start = chrono::high_resolution_clock::now();
+    double psnr_start = CycleTimer::currentSeconds();
     double psnr = calculate_psnr(image, reconstructed_image);
-    auto psnr_end = chrono::high_resolution_clock::now();
-    cout << "PSNR calculation time: "
-         << chrono::duration<double>(psnr_end - psnr_start).count() << " seconds" << endl;
-    cout << "PSNR: " << psnr << " dB" << endl;
+    double psnr_end = CycleTimer::currentSeconds();
+    printf("PSNR calculation time:\t\t[%.3f] seconds\n", psnr_end - psnr_start);
+    printf("PSNR:\t\t\t\t[%.3f] dB\n", psnr);
 
     // Record end time for entire process
-    auto total_end = chrono::high_resolution_clock::now();
-    cout << "Total execution time: "
-         << chrono::duration<double>(total_end - total_start).count() << " seconds" << endl;
+    double total_end = CycleTimer::currentSeconds();
+    printf("Total execution time:\t\t[%.3f] seconds\n", total_end - total_start);
 
     return 0;
 }
