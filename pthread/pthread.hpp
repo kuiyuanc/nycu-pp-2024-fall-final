@@ -1,8 +1,9 @@
+#pragma once
+
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <opencv2/opencv.hpp>
-#include <chrono>
 
 #include <pthread.h>
 
@@ -246,93 +247,4 @@ map<string, string> parse_args(int argc, char* argv[]) {
         args[arg.substr(2)] = i + 1 < argc && string(argv[i + 1]).find("-") != 0 ? argv[++i] : "";
     }
     return args;
-}
-
-int main(int argc, char* argv[]) {
-    int num_threads = 4;
-    string partition("block");
-    string mode("2D");
-
-    // load command-line arguments
-    map<string, string> args = parse_args(argc, argv);
-    if (args.find("num-threads") != args.end()) {
-        num_threads = stoi(args["num-threads"]);
-    }
-    if (args.find("partition") != args.end()) {
-        partition = args["partition"];
-    }
-    if (args.find("mode") != args.end()) {
-        mode = args["mode"];
-    }
-    cout << "Number of threads: " << num_threads << endl;
-    cout << "Partition: " << partition << endl;
-    cout << "Mode: " << mode << endl;
-
-    // Load the image
-    Mat image = imread("lena.png", IMREAD_COLOR);
-    if (image.empty()) {
-        cerr << "Error: Could not load image." << endl;
-        return -1;
-    }
-    resize(image, image, Size(256, 256));
-    Mat image_float;
-    image.convertTo(image_float, CV_32F);
-
-    // Record start time for entire process
-    auto total_start = chrono::high_resolution_clock::now();
-
-    // Apply optimized 2D-DCT using two 1D-DCTs
-    vector<Mat> dct_channels(3);
-    auto dct_start = chrono::high_resolution_clock::now();
-    for (int channel = 0; channel < 3; ++channel) {
-        extractChannel(image_float, dct_pthread::ro::dct::channel_data, channel);
-        dct_channels[channel] = dct_pthread::dct_2d(dct_pthread::ro::dct::channel_data, num_threads, partition, mode);
-    }
-    auto dct_end = chrono::high_resolution_clock::now();
-    cout << "Optimized 2D-DCT time: "
-         << chrono::duration<double>(dct_end - dct_start).count() << " seconds" << endl;
-
-    // Save the DCT image
-    Mat dct_image;
-    merge(dct_channels, dct_image);
-    imwrite("output/dct_image.png", dct_image);
-
-    // Apply optimized 2D-IDCT using two 1D-IDCTs
-    auto idct_start = chrono::high_resolution_clock::now();
-    vector<Mat> reconstructed_channels(3);
-    for (int channel = 0; channel < 3; ++channel) {
-        dct_pthread::ro::idct::dct_channel = dct_channels[channel];
-        reconstructed_channels[channel] = dct_pthread::idct_2d(dct_pthread::ro::idct::dct_channel, num_threads, partition, mode);
-    }
-    auto idct_end = chrono::high_resolution_clock::now();
-    cout << "Optimized 2D-IDCT time: "
-         << chrono::duration<double>(idct_end - idct_start).count() << " seconds" << endl;
-
-    // Merge reconstructed channels and clip to valid range
-    auto merge_start = chrono::high_resolution_clock::now();
-    Mat reconstructed_image;
-    merge(reconstructed_channels, reconstructed_image);
-    reconstructed_image = min(max(reconstructed_image, 0.0f), 255.0f);
-    reconstructed_image.convertTo(reconstructed_image, CV_8U);
-    auto merge_end = chrono::high_resolution_clock::now();
-    cout << "Merging and clipping time: "
-         << chrono::duration<double>(merge_end - merge_start).count() << " seconds" << endl;
-
-    // Save the reconstructed image
-    imwrite("output/reconstructed_image.png", reconstructed_image);
-
-    // Calculate PSNR
-    auto psnr_start = chrono::high_resolution_clock::now();
-    double psnr = calculate_psnr(image, reconstructed_image);
-    auto psnr_end = chrono::high_resolution_clock::now();
-    cout << "PSNR calculation time: "
-         << chrono::duration<double>(psnr_end - psnr_start).count() << " seconds" << endl;
-    cout << "PSNR: " << psnr << " dB" << endl;
-
-    // Record end time for entire process
-    auto total_end = chrono::high_resolution_clock::now();
-    cout << "Total execution time: "
-         << chrono::duration<double>(total_end - total_start).count() << " seconds" << endl;
-
-    return 0;
 }
