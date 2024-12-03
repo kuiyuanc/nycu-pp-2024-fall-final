@@ -9,25 +9,12 @@ using namespace cv;
 #include "../lib/util.hpp"
 #include "dct_cuda.h"
 
-void load_image(string filename, vector<Mat>& image_channels) {
-    Mat image = imread(filename, IMREAD_COLOR);
-    if (image.empty()) {
-        cerr << "Error: Could not load image." << endl;
-    }
-    // resize(image, image, Size(256, 256));
-    Mat image_float;
-    image.convertTo(image_float, CV_32F);
-    vector<Mat> channels(3);
-    split(image_float, channels);
-    image_channels = channels;
-}
-
 int main(int argc, char* argv[]) {
     cout << "Using CUDA for DCT and iDCT" << endl;
 
     // Image preprocessing
     vector<Mat> image_channels(3), compressed_channels(3);
-    load_image("../data/original/lena.png", image_channels);
+    util::load_image("../data/original/lena.png", image_channels);
 
     // Run the CUDA DCT implementation
     double dct_startTime = CycleTimer::currentSeconds();

@@ -11,21 +11,6 @@ using namespace cv;
 #include "../lib/util.hpp"
 #include "dct_omp.h"
 
-void load_image(string filename, vector<Mat>& image_channels) {
-    // 載入圖片
-    Mat image = imread(filename, IMREAD_COLOR);
-    if (image.empty()) {
-        cerr << "Error: Could not load image." << endl;
-        // return -1;
-    }
-    resize(image, image, Size(256, 256));
-    Mat image_float;
-    image.convertTo(image_float, CV_32F);
-    vector<Mat> channels(3);
-    split(image_float, channels);
-    image_channels = channels;
-}
-
 void compress_image_3d(vector<Mat>& image_channels, vector<Mat>& compressed_channels) {
 #pragma omp parallel for schedule(dynamic)
     for (int channel = 0; channel < 3; ++channel) {
@@ -51,7 +36,7 @@ int main(int argc, char* argv[]) {
     // Image preprocessing.
     //
     vector<Mat> image_channels(3), compressed_channels(3);
-    load_image("../data/original/lena.png", image_channels);
+    util::load_image("../data/original/lena.png", image_channels);
 
 
     //

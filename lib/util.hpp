@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include <opencv2/opencv.hpp>
 
@@ -33,6 +34,19 @@ double calculate_psnr(const Mat& original, const Mat& reconstructed) {
     if (mse == 0) return 100.0; // 無誤差時返回最大 PSNR 值
     double max_pixel = 255.0;   // 最大像素值，適用於 8-bit 圖像
     return 20.0 * log10(max_pixel / sqrt(mse));
+}
+
+void load_image(string filename, vector<Mat>& image_channels) {
+    Mat image = imread(filename, IMREAD_COLOR);
+    if (image.empty()) {
+        cerr << "Error: Could not load image." << endl;
+        exit(-1);
+    }
+    Mat image_float;
+    image.convertTo(image_float, CV_32F);
+    vector<Mat> channels(3);
+    split(image_float, channels);
+    image_channels = channels;
 }
 
 map<string, string> parse_args(int argc, char* argv[]) {
