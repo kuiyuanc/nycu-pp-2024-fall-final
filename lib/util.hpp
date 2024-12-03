@@ -50,11 +50,15 @@ void load_image(string filename, vector<Mat>& image_channels) {
 }
 
 map<string, string> parse_args(int argc, char* argv[]) {
+    vector<string> argv_string(argv + 1, argv + argc);
     map<string, string> args;
-    for (int i = 1; i < argc; i++) {
-        string arg = argv[i];
-        if (arg.find("--")) continue;
-        args[arg.substr(2)] = i + 1 < argc && string(argv[i + 1]).find("-") != 0 ? argv[++i] : "";
+    for (auto i = begin(argv_string); i != end(argv_string); ++i) {
+        if (i->substr(0, 2) != "--") continue;
+        args[i->substr(2)] = "";
+
+        if (i + 1 == end(argv_string) || (i + 1)->front() == '-') continue;
+        args[i->substr(2)] = *(i + 1);
+        ++i;
     }
     return args;
 }
