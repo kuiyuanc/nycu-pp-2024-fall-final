@@ -3,10 +3,10 @@ MODE ?= server
 CC = g++
 
 CFLAGS = -fopenmp
-LDFLAGS = 
+LDFLAGS =
 
 TARGET = serial
-SRC = serial.cpp
+SRC = dct_serial.cpp
 
 ifeq ($(MODE), local)
     CFLAGS += `pkg-config --cflags opencv4`
