@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <opencv2/opencv.hpp>
-#include "dct_cuda.h"
+#include "dct_cuda.hpp"
 
 using namespace cv;
 

@@ -7,7 +7,7 @@ using namespace cv;
 
 #include "../lib/CycleTimer.h"
 #include "../lib/util.hpp"
-#include "dct_cuda.h"
+#include "dct_cuda.hpp"
 
 int main(int argc, char* argv[]) {
     cout << "Using CUDA for DCT and iDCT" << endl;

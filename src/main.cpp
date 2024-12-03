@@ -9,7 +9,7 @@ using namespace cv;
 
 #include "../lib/CycleTimer.h"
 #include "../lib/util.hpp"
-#include "dct_omp.h"
+#include "dct_omp.hpp"
 
 void compress_image_3d(vector<Mat>& image_channels, vector<Mat>& compressed_channels) {
 #pragma omp parallel for schedule(dynamic)
