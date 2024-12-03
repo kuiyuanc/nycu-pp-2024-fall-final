@@ -12,9 +12,6 @@ NVCC = nvcc
 NVCCFLAGS = -arch=sm_60 -Xcompiler -fopenmp -O3
 LDFLAGS =
 
-TARGET_SERIAL = $(BIN_DIR)/serial
-SRC_SERIAL = $(SRC_DIR)/dct_serial.cpp
-
 TARGET_OMP = $(BIN_DIR)/main
 SRC_OMP = $(SRC_DIR)/main.cpp
 
@@ -30,10 +27,7 @@ else
     $(error Unknown MODE: $(MODE))
 endif
 
-all: $(TARGET_SERIAL) $(TARGET_OMP) $(TARGET_CUDA)
-
-$(TARGET_SERIAL): $(SRC_SERIAL)
-	$(NVCC) -o $@ $^ $(NVCCFLAGS) $(LDFLAGS)
+all: $(TARGET_OMP) $(TARGET_CUDA)
 
 $(TARGET_OMP): $(SRC_OMP)
 	$(NVCC) -o $@ $^ $(NVCCFLAGS) $(LDFLAGS)
