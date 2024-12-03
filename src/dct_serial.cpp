@@ -8,7 +8,7 @@
 using namespace std;
 using namespace cv;
 
-#include "../lib/PSNR.h"
+#include "../lib/util.hpp"
 #define BLOCK_SIZE 8
 
 // 1D-IDCT
@@ -189,7 +189,7 @@ int main() {
 
     // Calculate PSNR
     double psnr_start = CycleTimer::currentSeconds();
-    double psnr = calculate_psnr(image, reconstructed_image);
+    double psnr = util::calculate_psnr(image, reconstructed_image);
     double psnr_end = CycleTimer::currentSeconds();
     printf("PSNR calculation time:\t\t[%.3f] seconds\n", psnr_end - psnr_start);
     printf("PSNR:\t\t\t\t[%.3f] dB\n", psnr);

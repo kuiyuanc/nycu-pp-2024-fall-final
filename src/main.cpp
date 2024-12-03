@@ -8,7 +8,7 @@ using namespace std;
 using namespace cv;
 
 #include "../lib/CycleTimer.h"
-#include "../lib/PSNR.h"
+#include "../lib/util.hpp"
 #include "dct_omp.h"
 
 void load_image(string filename, vector<Mat>& image_channels) {
@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
     double psnr_startTime = CycleTimer::currentSeconds();
     Mat image = imread("../data/original/lena.png", IMREAD_COLOR);
     resize(image, image, Size(256, 256));
-    double psnr = calculate_psnr(image, reconstructed_image);
+    double psnr = util::calculate_psnr(image, reconstructed_image);
     double psnr_endTime = CycleTimer::currentSeconds();
 
 
