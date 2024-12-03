@@ -2,13 +2,10 @@
 #include <vector>
 #include <cmath>
 #include <opencv2/opencv.hpp>
-// #include <chrono>
-#include "../lib/CycleTimer.h"
 
 using namespace std;
 using namespace cv;
 
-#include "../lib/util.hpp"
 #define BLOCK_SIZE 8
 
 // 1D-IDCT
