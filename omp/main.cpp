@@ -9,7 +9,7 @@ using namespace cv;
 
 #include "common/CycleTimer.h"
 #include"common/PSNR.h"
-#include "dct.h"
+#include "dct_omp.h"
 
 void load_image(string filename, vector<Mat>& image_channels) {
     // 載入圖片
