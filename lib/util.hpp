@@ -1,5 +1,8 @@
 #pragma once
 
+#include <map>
+#include <string>
+
 #include <opencv2/opencv.hpp>
 
 using namespace std;
