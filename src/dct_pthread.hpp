@@ -225,4 +225,5 @@ Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& 
 
     return rw::dct::dct_matrix;
 }
+
 }  // namespace dct_pthread

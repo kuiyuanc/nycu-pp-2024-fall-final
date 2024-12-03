@@ -11,7 +11,6 @@ using namespace std;
 using namespace cv;
 
 namespace util {
-
 namespace statistics {
 
 auto mean(const auto& values) {
@@ -90,4 +89,5 @@ map<string, string> parse_args(int argc, char* argv[]) {
     }
     return args;
 }
+
 }  // namespace util
