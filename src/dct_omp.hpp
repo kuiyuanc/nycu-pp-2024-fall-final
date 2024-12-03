@@ -89,6 +89,13 @@ Mat dct_2d_omp(const Mat& image) {
     return dct_matrix;
 }
 
+void compress_image_3d(vector<Mat>& image_channels, vector<Mat>& compressed_channels) {
+#pragma omp parallel for schedule(dynamic)
+    for (int channel = 0; channel < 3; ++channel) {
+        compressed_channels[channel] = dct_2d_omp(image_channels[channel]);
+    }
+}
+
 // 優化 1D-IDCT
 vector<double> idct_1d_omp(const vector<double>& signal) {
     const int N = signal.size();
@@ -177,5 +184,9 @@ Mat idct_2d_omp(const Mat& dct_matrix) {
     return image;
 }
 
-
-
+void reconstruct_image(vector<Mat>& compressed_channels, vector<Mat>& reconstructed_channels) {
+#pragma omp parallel for schedule(dynamic)
+    for (int channel = 0; channel < 3; ++channel) {
+        reconstructed_channels[channel] = idct_2d_omp(compressed_channels[channel]);
+    }
+}

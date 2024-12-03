@@ -11,20 +11,6 @@ using namespace cv;
 #include "../lib/util.hpp"
 #include "dct_omp.hpp"
 
-void compress_image_3d(vector<Mat>& image_channels, vector<Mat>& compressed_channels) {
-#pragma omp parallel for schedule(dynamic)
-    for (int channel = 0; channel < 3; ++channel) {
-        compressed_channels[channel] = dct_2d_omp(image_channels[channel]);
-    }
-}
-
-void reconstruct_image(vector<Mat>& compressed_channels, vector<Mat>& reconstructed_channels) {
-#pragma omp parallel for schedule(dynamic)
-    for (int channel = 0; channel < 3; ++channel) {
-        reconstructed_channels[channel] = idct_2d_omp(compressed_channels[channel]);
-    }
-}
-
 
 int main(int argc, char* argv[]) {
 
