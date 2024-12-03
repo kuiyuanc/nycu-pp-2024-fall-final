@@ -7,14 +7,14 @@ NVCC = nvcc
 
 NVCCFLAGS = -arch=sm_60 -Xcompiler -fopenmp -O3
 
-LDFLAGS = 
+LDFLAGS =
 NVCC_LDFLAGS =
 
 # Target binary name
 TARGET_CUDA = cuda
 
 # Source files for the GPU (CUDA) version
-SRC_CUDA = cuda.cpp dct.cu
+SRC_CUDA = cuda.cpp dct_cuda.cu
 
 # Libraries for OpenCV
 ifeq ($(MODE), local)
