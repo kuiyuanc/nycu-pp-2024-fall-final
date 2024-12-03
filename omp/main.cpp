@@ -13,7 +13,7 @@ using namespace cv;
 
 void load_image(string filename, vector<Mat>& image_channels) {
     // 載入圖片
-    Mat image = imread("lena.png", IMREAD_COLOR);
+    Mat image = imread(filename, IMREAD_COLOR);
     if (image.empty()) {
         cerr << "Error: Could not load image." << endl;
         // return -1;
