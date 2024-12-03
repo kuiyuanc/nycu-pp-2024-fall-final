@@ -3,12 +3,12 @@
 #include <cmath>
 #include <opencv2/opencv.hpp>
 // #include <chrono>
-#include "common/CycleTimer.h"
+#include "../lib/CycleTimer.h"
 
 using namespace std;
 using namespace cv;
 
-#include"common/PSNR.h"
+#include "../lib/PSNR.h"
 #define BLOCK_SIZE 8
 
 // 1D-IDCT

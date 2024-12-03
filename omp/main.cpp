@@ -7,8 +7,8 @@
 using namespace std;
 using namespace cv;
 
-#include "common/CycleTimer.h"
-#include"common/PSNR.h"
+#include "../lib/CycleTimer.h"
+#include "../lib/PSNR.h"
 #include "dct_omp.h"
 
 void load_image(string filename, vector<Mat>& image_channels) {
