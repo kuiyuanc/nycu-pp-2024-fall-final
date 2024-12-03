@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -10,6 +11,33 @@ using namespace std;
 using namespace cv;
 
 namespace util {
+
+namespace statistics {
+
+auto mean(const auto& values) {
+    return accumulate(values.begin(), values.end(), 0.0) / values.size();
+}
+
+auto var(const auto& values, bool population = false) {
+    auto avg             = mean(values);
+    auto sum_square_diff = accumulate(values.begin(), values.end(), 0.0, [&avg](const auto& sum, const auto& x) {
+        return sum + (x - avg) * (x - avg);
+    });
+    return sum_square_diff / (population ? values.size() : values.size() - 1);
+}
+
+auto stdev(const auto& values, bool population = false) {
+    return sqrt(var(values, population));
+}
+
+tuple<double, double, double> ci95(const auto& values) {
+    auto avg   = mean(values);
+    auto sterr = stdev(values) / sqrt(values.size());
+    return {avg - sterr * 1.96, avg, avg + sterr * 1.96};
+}
+
+}  // namespace statistics
+
 // PSNR Calculation
 double calculate_psnr(const Mat& original, const Mat& reconstructed) {
     // 確保圖像大小和通道一致
