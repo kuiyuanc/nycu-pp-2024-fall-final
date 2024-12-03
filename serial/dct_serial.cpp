@@ -138,7 +138,7 @@ Mat idct_2d(const Mat& dct_matrix) {
 
 int main() {
     // Load the image
-    Mat image = imread("lena.png", IMREAD_COLOR);
+    Mat image = imread("../data/original/lena.png", IMREAD_COLOR);
     if (image.empty()) {
         cerr << "Error: Could not load image." << endl;
         return -1;

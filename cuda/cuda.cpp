@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
 
     // Image preprocessing
     vector<Mat> image_channels(3), compressed_channels(3);
-    load_image("lena.png", image_channels);
+    load_image("../data/original/lena.png", image_channels);
 
     // Run the CUDA DCT implementation
     double dct_startTime = CycleTimer::currentSeconds();
@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
 
     // Calculate PSNR
     double psnr_startTime = CycleTimer::currentSeconds();
-    Mat image = imread("lena.png", IMREAD_COLOR);
+    Mat image = imread("../data/original/lena.png", IMREAD_COLOR);
     // resize(image, image, Size(256, 256));
     double psnr = calculate_psnr(image, reconstructed_image);
     double psnr_endTime = CycleTimer::currentSeconds();
