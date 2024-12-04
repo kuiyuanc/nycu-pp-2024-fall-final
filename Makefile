@@ -32,7 +32,7 @@ $(TARGET): $(SRC)
 
 clean:
 	-rm -rf $(BIN_DIR)
-	-rm -f data/dct/*
-	-rm -f data/reconstructed/*
+	-rm -f data/dct/*/*
+	-rm -f data/reconstructed/*/*
 
 .PHONY: all clean
