@@ -14,7 +14,7 @@ auto main(int argc, char* argv[]) -> int {
     // for (auto data : all_data) {
         for (auto threads : num_threads) {
             for (auto size : image_sizes) {
-                args.all_data = data;
+                // args.all_data = data;
                 args.num_threads = threads;
                 args.image_size = size;
                 experiment.set_args(args);
