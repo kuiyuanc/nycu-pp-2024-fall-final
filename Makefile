@@ -9,7 +9,7 @@ BIN_DIR = bin
 $(shell mkdir -p $(BIN_DIR))
 
 NVCC = nvcc
-NVCCFLAGS = -arch=sm_60 -Xcompiler -fopenmp -O3
+NVCCFLAGS = -arch=sm_60 -Xcompiler -fopenmp -O3 -lpthread
 LDFLAGS =
 
 ifeq ($(MODE), local)
