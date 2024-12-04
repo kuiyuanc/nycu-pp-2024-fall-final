@@ -87,7 +87,7 @@ private:
 
 void Experiment::run() {
     print_separator();
-    
+
     // 1. load image(s)
     auto [original_images, original_channels, filenames] = load();
 
@@ -150,9 +150,7 @@ Experiment::test(const vector<util::image::Channel3d>& original_channels, const 
             time_elapsed[i][1][t] = util::system::timer(idcts[i], dct_channels[i], reconstructed_channels[i], args.num_threads);
             util::image::merge(reconstructed_channels[i], reconstructed_images[i]);
         }
-        cout << "\rTesting progress " << setw(3) << int(t / static_cast<double>(args.num_tests) * 100) << " %";
     }
-    cout << "\rTesting progress 100 %" << endl;
 
     save(filenames, dct_channels, reconstructed_images);
 
