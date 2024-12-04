@@ -92,6 +92,7 @@ Mat idct_2d(const Mat& dct_matrix, const int& num_threads_assigned = 4, const st
     ro::rows        = dct_matrix.rows;
     ro::cols        = dct_matrix.cols;
     rw::idct::image = Mat(ro::rows, ro::cols, CV_32F, Scalar(0));
+    ro::idct::dct_channel = dct_matrix;
 
     ro::num_threads = num_threads_assigned;
     ro::partition   = partition_assigned;
@@ -182,6 +183,7 @@ Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& 
     ro::rows            = image.rows;
     ro::cols            = image.cols;
     rw::dct::dct_matrix = Mat(ro::rows, ro::cols, CV_32F);
+    ro::dct::channel_data = image;
 
     ro::num_threads = num_threads_assigned;
     ro::partition   = partition_assigned;
