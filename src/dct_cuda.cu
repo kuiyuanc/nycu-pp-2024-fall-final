@@ -4,6 +4,8 @@
 #include <opencv2/opencv.hpp>
 #include "dct_cuda.hpp"
 
+#include "lib/util.hpp"
+
 using namespace cv;
 
 __device__ float alpha(int u, int N) {
@@ -64,7 +66,7 @@ __global__ void idctKernel(float* input, float* output, int width, int height) {
     }
 }
 
-Mat dct_2d_cuda(const Mat& image) {
+Mat dct_cuda::dct_2d(const Mat& image) {
     const int rows = image.rows;
     const int cols = image.cols;
 
@@ -91,7 +93,7 @@ Mat dct_2d_cuda(const Mat& image) {
     return dct_matrix;
 }
 
-Mat idct_2d_cuda(const Mat& dct_matrix) {
+Mat dct_cuda::idct_2d(const Mat& dct_matrix) {
     const int rows = dct_matrix.rows;
     const int cols = dct_matrix.cols;
 
@@ -116,4 +118,28 @@ Mat idct_2d_cuda(const Mat& dct_matrix) {
     cudaFree(d_output);
 
     return reconstructed_image;
+}
+
+void dct_cuda::dct_3d(const util::image::Channel3d& original, util::image::Channel3d& dct) {
+    for (int i{0}; i < 3; ++i) {
+        dct[i] = dct_2d(original[i]);
+    }
+}
+
+void dct_cuda::idct_3d(const util::image::Channel3d& dct, util::image::Channel3d& reconstructed) {
+    for (int i{0}; i < 3; ++i) {
+        reconstructed[i] = idct_2d(dct[i]);
+    }
+}
+
+void dct_cuda::dct_4d(const vector<util::image::Channel3d>& originals, vector<util::image::Channel3d>& dcts, const int& num_threads_assigned) {
+    for (int i{0}; i < originals.size(); ++i) {
+        dct_3d(originals[i], dcts[i]);
+    }
+}
+
+void dct_cuda::idct_4d(const vector<util::image::Channel3d>& dcts, vector<util::image::Channel3d>& reconstructeds, const int& num_threads_assigned) {
+    for (int i{0}; i < dcts.size(); ++i) {
+        idct_3d(dcts[i], reconstructeds[i]);
+    }
 }

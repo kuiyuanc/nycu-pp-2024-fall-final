@@ -8,6 +8,8 @@ using namespace cv;
 
 #define BLOCK_SIZE 8
 
+namespace dct_serial {
+
 // 1D-IDCT
 vector<double> idct_1d(const vector<double>& signal) {
     int N = signal.size();
@@ -132,3 +134,29 @@ Mat idct_2d(const Mat& dct_matrix) {
 
     return image;
 }
+
+void dct_3d(const util::image::Channel3d& original, util::image::Channel3d& dct) {
+    for (int i{0}; i < 3; ++i) {
+        dct[i] = dct_2d(original[i]);
+    }
+}
+
+void idct_3d(const util::image::Channel3d& dct, util::image::Channel3d& reconstructed) {
+    for (int i{0}; i < 3; ++i) {
+        reconstructed[i] = idct_2d(dct[i]);
+    }
+}
+
+void dct_4d(const vector<util::image::Channel3d>& originals, vector<util::image::Channel3d>& dcts, const int& num_threads_assigned = 1) {
+    for (int i{0}; i < originals.size(); ++i) {
+        dct_3d(originals[i], dcts[i]);
+    }
+}
+
+void idct_4d(const vector<util::image::Channel3d>& dcts, vector<util::image::Channel3d>& reconstructeds, const int& num_threads_assigned = 1) {
+    for (int i{0}; i < dcts.size(); ++i) {
+        idct_3d(dcts[i], reconstructeds[i]);
+    }
+}
+
+}  // namespace dct_serial

@@ -1,9 +1,13 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 
+#include "lib/util.hpp"
+
 using namespace cv;
 
 #define BLOCK_SIZE  8
+
+namespace dct_omp {
 
 // 優化 1D-DCT: 使用向量化和更好的快取利用
 vector<double> dct_1d_omp(const vector<double>& signal) {
@@ -31,7 +35,7 @@ vector<double> dct_1d_omp(const vector<double>& signal) {
 }
 
 // 使用 block 處理和更有效的資料存取
-Mat dct_2d_omp(const Mat& image) {
+Mat dct_2d(const Mat& image) {
     const int rows = image.rows;
     const int cols = image.cols;
     Mat dct_matrix(rows, cols, CV_32F);
@@ -89,10 +93,16 @@ Mat dct_2d_omp(const Mat& image) {
     return dct_matrix;
 }
 
-void compress_image_3d(vector<Mat>& image_channels, vector<Mat>& compressed_channels) {
+void dct_3d(const util::image::Channel3d& image_channels, util::image::Channel3d& compressed_channels) {
 #pragma omp parallel for schedule(dynamic)
     for (int channel = 0; channel < 3; ++channel) {
-        compressed_channels[channel] = dct_2d_omp(image_channels[channel]);
+        compressed_channels[channel] = dct_2d(image_channels[channel]);
+    }
+}
+
+void dct_4d(const vector<util::image::Channel3d>& originals, vector<util::image::Channel3d>& dcts, const int& num_threads_assigned = 4) {
+    for (int i{0}; i < dcts.size(); ++i) {
+        dct_3d(originals[i], dcts[i]);
     }
 }
 
@@ -130,7 +140,7 @@ vector<double> idct_1d_omp(const vector<double>& signal) {
 }
 
 // 優化 2D-IDCT
-Mat idct_2d_omp(const Mat& dct_matrix) {
+Mat idct_2d(const Mat& dct_matrix) {
     const int rows = dct_matrix.rows;
     const int cols = dct_matrix.cols;
     Mat image(rows, cols, CV_32F);
@@ -184,9 +194,17 @@ Mat idct_2d_omp(const Mat& dct_matrix) {
     return image;
 }
 
-void reconstruct_image(vector<Mat>& compressed_channels, vector<Mat>& reconstructed_channels) {
+void idct_3d(const util::image::Channel3d& compressed_channels, util::image::Channel3d& reconstructed_channels) {
 #pragma omp parallel for schedule(dynamic)
     for (int channel = 0; channel < 3; ++channel) {
-        reconstructed_channels[channel] = idct_2d_omp(compressed_channels[channel]);
+        reconstructed_channels[channel] = idct_2d(compressed_channels[channel]);
     }
 }
+
+void idct_4d(const vector<util::image::Channel3d>& dcts, vector<util::image::Channel3d>& reconstructed_channels, const int& num_threads_assigned = 4) {
+    for (int i{0}; i < dcts.size(); ++i) {
+        idct_3d(dcts[i], reconstructed_channels[i]);
+    }
+}
+
+}    // namespace dct_omp

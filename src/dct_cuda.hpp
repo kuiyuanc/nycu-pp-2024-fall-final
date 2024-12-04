@@ -4,6 +4,8 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 
+#include "lib/util.hpp"
+
 using namespace cv;
 
 #define BLOCK_SIZE 8
@@ -14,7 +16,15 @@ __global__ void dctKernel(float* input, float* output, int width, int height);
 __global__ void idctKernel(float* input, float* output, int width, int height);
 #endif
 
-Mat dct_2d_cuda(const Mat& image);
-Mat idct_2d_cuda(const Mat& dct_matrix);
+namespace dct_cuda {
 
-#endif // DCT_H
+Mat  dct_2d(const Mat& image);
+Mat  idct_2d(const Mat& dct_matrix);
+void dct_3d(const util::image::Channel3d& original, util::image::Channel3d& dct);
+void idct_3d(const util::image::Channel3d& dct, util::image::Channel3d& reconstructed);
+void dct_4d(const vector<util::image::Channel3d>& originals, vector<util::image::Channel3d>& dcts, const int& num_threads_assigned = 4);
+void idct_4d(const vector<util::image::Channel3d>& dcts, vector<util::image::Channel3d>& reconstructeds, const int& num_threads_assigned = 4);
+
+}  // namespace dct_cuda
+
+#endif  // DCT_H
