@@ -4,6 +4,7 @@
 MODE ?= server
 
 SRC_DIR = src
+LIB_DIR = lib
 BIN_DIR = bin
 
 $(shell mkdir -p $(BIN_DIR))
@@ -11,6 +12,9 @@ $(shell mkdir -p $(BIN_DIR))
 NVCC = nvcc
 NVCCFLAGS = -arch=sm_60 -Xcompiler -fopenmp -O3 -lpthread
 LDFLAGS =
+
+TARGET = $(BIN_DIR)/main
+SRC = $(LIB_DIR)/util.cpp $(SRC_DIR)/dct_cuda.cu $(SRC_DIR)/main.cpp
 
 ifeq ($(MODE), local)
     NVCCFLAGS += `pkg-config --cflags opencv4`
@@ -21,7 +25,10 @@ else
     $(error Unknown MODE: $(MODE))
 endif
 
-all:
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(NVCC) -o $@ $^ $(NVCCFLAGS) $(LDFLAGS)
 
 clean:
 	-rm -rf $(BIN_DIR)
