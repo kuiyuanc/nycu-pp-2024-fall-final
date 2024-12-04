@@ -3,6 +3,7 @@
 
 #include "lib/util.hpp"
 
+using namespace std;
 using namespace cv;
 
 #define BLOCK_SIZE  8
