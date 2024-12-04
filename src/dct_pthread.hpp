@@ -63,7 +63,7 @@ vector<double> idct_1d(const vector<double>& signal) {
 }
 
 void* sub_idct_2d(void* thread) {
-    int        thread_id{long(thread)};
+    long       thread_id{long(thread)};
     const Mat& dct_matrix{ro::idct::dct_channel};
     if (ro::outer_loop_direction == direction::kRow) {
         for (int i = thread_id * ro::rows_per_thread; i < thread_id * ro::rows_per_thread + ro::rows_per_thread; ++i) {
@@ -84,6 +84,7 @@ void* sub_idct_2d(void* thread) {
                 rw::idct::image.at<float>(i, j) = idct_col[i];
         }
     }
+    return 0;
 }
 
 // 2D-IDCT using two 1D-IDCTs
@@ -152,7 +153,7 @@ vector<double> dct_1d(const vector<double>& signal) {
 }
 
 void* sub_dct_2d(void* thread) {
-    int        thread_id{long(thread)};
+    long       thread_id{long(thread)};
     const Mat& image{ro::dct::channel_data};
     if (ro::outer_loop_direction == direction::kRow) {
         for (int i = thread_id * ro::rows_per_thread; i < thread_id * ro::rows_per_thread + ro::rows_per_thread; ++i) {
@@ -173,6 +174,7 @@ void* sub_dct_2d(void* thread) {
                 rw::dct::dct_matrix.at<float>(i, j) = dct_col[i];
         }
     }
+    return 0;
 }
 
 // 2D-DCT using two 1D-DCTs
