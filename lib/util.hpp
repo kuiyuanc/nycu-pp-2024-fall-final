@@ -53,5 +53,4 @@ double timer(Func function, Args&... args) {
 
 }  // namespace system
 
-const array<string, 4> names{"Serial", "Pthread", "OpenMP", "CUDA"};
 }  // namespace util
