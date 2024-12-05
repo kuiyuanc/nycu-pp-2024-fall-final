@@ -63,7 +63,7 @@ double util::image::calculate_psnr(const Mat& original, const Mat& reconstructed
 Mat util::image::load(string filename, const Shape& image_size) {
     Mat image = imread(filename, IMREAD_COLOR);
     if (image.empty()) {
-        cerr << "Error: Could not load image." << endl;
+        cerr << "Error: Could not load image \'" << filename << '\'' << endl;
         exit(-1);
     }
     resize(image, image, Size(image_size.first, image_size.second));
