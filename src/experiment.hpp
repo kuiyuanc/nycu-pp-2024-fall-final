@@ -208,7 +208,7 @@ void Experiment::print_args() const {
     cout << "\tUsing " << args.num_threads << " threads" << endl;
     cout << "\tNumber of tests = " << args.num_tests << endl;
 
-    cout << std::setprecision(3) << std::scientific << "PSNR validation acceptance tolerance = " << args.tolerance << endl;
+    cout << std::setprecision(1) << std::scientific << "PSNR validation acceptance tolerance = " << args.tolerance << endl;
 }
 
 void Experiment::set_args(const ExperimentArgs& args) {
