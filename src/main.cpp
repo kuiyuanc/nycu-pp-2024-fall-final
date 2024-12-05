@@ -1,5 +1,5 @@
 // run following command in root dir of repo to start experiment:
-// $ make clean; make; srun -c 6 ./bin/main > data/log.txt
+// $ make clean; make; srun -c 6 -w hpc097 ./bin/main > data/log.txt
 
 #include "experiment.hpp"
 
