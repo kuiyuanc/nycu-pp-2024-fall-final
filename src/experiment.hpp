@@ -84,14 +84,19 @@ private:
     void print_args() const;
     void print_separator() const;
 
+    bool last_all_data{false};
     ExperimentArgs args;
+    vector<Mat> original_images;
+    vector<util::image::Channel3d> original_channels;
+    vector<string> filenames;
 };
 
 void Experiment::run() {
     print_separator();
 
     // 1. load image(s)
-    auto [original_images, original_channels, filenames] = load();
+    if (last_all_data != args.all_data || filenames.empty())
+        tie(original_images, original_channels, filenames) = load();
 
     // 2. test different dct & idct implementations
     auto [reconstructed_images, time_elapsed] = test(original_channels, filenames);
@@ -104,6 +109,9 @@ void Experiment::run() {
     print_separator();
     print(time_elapsed, validations, psnrs);
     print_separator();
+
+    // 5. record last arguments
+    last_all_data = args.all_data;
 }
 
 tuple<vector<Mat>, vector<util::image::Channel3d>, vector<string>> Experiment::load() {
