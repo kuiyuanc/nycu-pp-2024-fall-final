@@ -70,6 +70,7 @@ public:
     Experiment(const ExperimentArgs& args) :
         args(args) {};
     void run();
+    void run(const ExperimentArgs& args) { set_args(args); run(); }
     void set_args(const ExperimentArgs& args);
     void set_args(map<string, string>& args);
 
