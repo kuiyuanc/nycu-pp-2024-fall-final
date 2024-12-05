@@ -73,7 +73,7 @@ Mat util::image::load(string filename, const Shape& image_size) {
 vector<Mat> util::image::load(const vector<string>& filenames, const Shape& image_size) {
     vector<Mat> images;
     for_each(filenames.begin(), filenames.end(), [&images, &image_size](const string& filename) {
-        images.emplace_back(load(filename, image_size));
+        if (filename.rfind(".png") != string::npos) images.emplace_back(load(filename, image_size));
     });
     return images;
 }
