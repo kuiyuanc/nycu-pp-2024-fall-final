@@ -17,8 +17,10 @@ vector<double> dct_1d_omp(const vector<double>& signal) {
 
     // 預計算 cosine 值以減少重複計算
     vector<vector<double>> cos_cache(N, vector<double>(N));
-#pragma omp parallel for collapse(2)
+
+// #pragma omp parallel for 
     for (int u = 0; u < N; ++u) {
+// #pragma omp simd
         for (int x = 0; x < N; ++x) {
             cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * N));
         }
@@ -107,7 +109,7 @@ void dct_4d(const vector<util::image::Channel3d>& originals, vector<util::image:
     }
 }
 
-// 優化 1D-IDCT
+// 1D-IDCT
 vector<double> idct_1d_omp(const vector<double>& signal) {
     const int N = signal.size();
     vector<double> result(N, 0.0);
@@ -116,14 +118,15 @@ vector<double> idct_1d_omp(const vector<double>& signal) {
     vector<vector<double>> cos_cache(N, vector<double>(N));
     vector<double> alpha_cache(N);
 
-#pragma omp parallel for collapse(2)
+// #pragma omp parallel for
     for (int u = 0; u < N; ++u) {
+// #pragma omp simd
         for (int x = 0; x < N; ++x) {
             cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * N));
         }
     }
 
-#pragma omp parallel for
+// #pragma omp parallel for
     for (int u = 0; u < N; ++u) {
         alpha_cache[u] = (u == 0) ? 1.0 / sqrt(N) : sqrt(2.0 / N);
     }
@@ -140,7 +143,7 @@ vector<double> idct_1d_omp(const vector<double>& signal) {
     return result;
 }
 
-// 優化 2D-IDCT
+// 2D-IDCT
 Mat idct_2d(const Mat& dct_matrix) {
     const int rows = dct_matrix.rows;
     const int cols = dct_matrix.cols;
@@ -167,8 +170,7 @@ Mat idct_2d(const Mat& dct_matrix) {
             }
         }
     }
-
-    // 建立暫存矩陣
+    
     Mat temp_image = image.clone();
 
     // Step 2: Block-wise row IDCT
