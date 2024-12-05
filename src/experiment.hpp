@@ -30,7 +30,8 @@ struct ExperimentArgs {
         datadir  = args.find("datadir") != args.end() ? args["datadir"] : "data/original";
         all_data = args.find("all-data") != args.end();
 
-        image_size = args.find("image-size") != args.end() ? std::stoi(args["image-size"]) : 256;
+        image_size.first  = args.find("image-width") != args.end() ? std::stoi(args["image-width"]) : 256;
+        image_size.second = args.find("image-height") != args.end() ? std::stoi(args["image-height"]) : 256;
 
         save = args.find("save") != args.end();
 
@@ -43,7 +44,7 @@ struct ExperimentArgs {
     string datadir{"data/original"};
     bool   all_data{false};
 
-    int image_size{256};
+    util::image::Shape image_size{256, 256};
 
     int num_images{1};
 
@@ -108,7 +109,7 @@ void Experiment::run() {
 tuple<vector<Mat>, vector<util::image::Channel3d>, vector<string>> Experiment::load() {
     vector<string> filenames(args.all_data ? util::system::get_filenames(args.datadir) : vector<string>{args.datadir + "/lena.png"});
 
-    vector<Mat> images(util::image::load(filenames, util::image::Shape{args.image_size, args.image_size}));
+    vector<Mat> images(util::image::load(filenames, args.image_size));
 
     args.num_images = images.size();
 
@@ -202,7 +203,7 @@ void Experiment::print_args() const {
     } else {
         cout << "\tLoading lena.png only" << endl;
     }
-    cout << "\tImage shape: (" << args.image_size << ", " << args.image_size << ")" << endl;
+    cout << "\tImage shape: (" << args.image_size.first << ", " << args.image_size.second << ")" << endl;
 
     cout << "Testing with following parameters:" << endl;
     cout << "\tUsing " << args.num_threads << " threads" << endl;
