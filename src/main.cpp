@@ -16,19 +16,23 @@ auto main(int argc, char* argv[]) -> int {
     ExperimentArgs args(command_line_args);
     Experiment     experiment;
 
-    array<bool, 2>               all_data{false, true};
-    array<util::image::Shape, 3> image_sizes{
-        util::image::Shape{ 512,  512},
-        util::image::Shape{1920, 1080},
-        util::image::Shape{2560, 1440}
-    };
+    if (command_line_args.find("customize") == command_line_args.end()) {
+        array<bool, 2>               all_data{false, true};
+        array<util::image::Shape, 3> image_sizes{
+            util::image::Shape{ 512,  512},
+            util::image::Shape{1920, 1080},
+            util::image::Shape{2560, 1440}
+        };
 
-    for (auto data : all_data) {
-        for (auto size : image_sizes) {
-            args.all_data   = data;
-            args.image_size = size;
-            experiment.run(args);
+        for (auto data : all_data) {
+            for (auto size : image_sizes) {
+                args.all_data   = data;
+                args.image_size = size;
+                experiment.run(args);
+            }
         }
+    } else {
+        experiment.run(args);
     }
 
     return 0;
