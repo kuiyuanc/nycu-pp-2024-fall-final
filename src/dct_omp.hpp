@@ -184,6 +184,7 @@ void idct_3d(const util::image::Channel3d &compressed_channels, util::image::Cha
 
 void idct_4d(const vector<util::image::Channel3d> &dcts, vector<util::image::Channel3d> &reconstructed_channels,
 			 const int &num_threads_assigned = 4) {
+	omp_set_num_threads(num_threads_assigned);
 	for (int i{0}; i < dcts.size(); ++i) {
 		idct_3d(dcts[i], reconstructed_channels[i]);
 	}
