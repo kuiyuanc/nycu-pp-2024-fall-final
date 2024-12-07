@@ -18,12 +18,6 @@
 #include "dct_serial.hpp"
 
 struct ExperimentArgs {
-    // TODO: make parameters configurable
-    // block size
-    // partition mode
-    // simd
-    // cosine cache
-
     ExperimentArgs() = default;
 
     ExperimentArgs(map<string, string>& args) {
