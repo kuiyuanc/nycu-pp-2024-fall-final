@@ -1,5 +1,4 @@
-# export CPATH=/opt/spack/var/spack/environments/pp-env/.spack-env/view/include/opencv4:$CPATH
-# export LD_LIBRARY_PATH=/opt/spack/var/spack/environments/pp-env/.spack-env/view/lib:$LD_LIBRARY_PATH
+# cd nycu-pp-2024-fall-final; export CPATH=/opt/spack/var/spack/environments/pp-env/.spack-env/view/include/opencv4:$CPATH; export LD_LIBRARY_PATH=/opt/spack/var/spack/environments/pp-env/.spack-env/view/lib:$LD_LIBRARY_PATH
 
 MODE ?= server
 
