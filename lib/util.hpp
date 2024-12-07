@@ -72,3 +72,5 @@ double timer(Func function, Args&... args) {
 }  // namespace system
 
 }  // namespace util
+
+#define BLOCK_SIZE util::image::kBlockSize

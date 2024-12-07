@@ -8,8 +8,6 @@
 using namespace std;
 using namespace cv;
 
-#define BLOCK_SIZE 8
-
 namespace dct_serial {
 
 // 1D-IDCT

@@ -6,8 +6,6 @@
 using namespace std;
 using namespace cv;
 
-#define BLOCK_SIZE 8
-
 namespace dct_omp {
 
 // 1D-IDCT
