@@ -39,6 +39,8 @@ struct ExperimentArgs {
         num_tests   = args.find("num-tests") != args.end() ? std::stoi(args["num-tests"]) : 30;
 
         tolerance = args.find("tolerance") != args.end() ? std::stod(args["tolerance"]) : 1e-5;
+
+        verbose = args.find("verbose") != args.end();
     }
 
     string datadir{"data/original"};
@@ -54,6 +56,8 @@ struct ExperimentArgs {
     int num_tests{30};
 
     double tolerance{1e-5};
+
+    bool verbose{false};
 };
 
 class Experiment {
@@ -92,17 +96,39 @@ private:
 };
 
 void Experiment::run() {
+    double start;
+
     print_separator();
+
+    if (args.verbose) {
+        cout << "experiment starts" << endl;
+        start = CycleTimer::currentSeconds();
+    }
 
     // 1. load image(s)
     if (last_all_data != args.all_data || filenames.empty())
         tie(original_images, original_channels, filenames) = load();
 
+    if (args.verbose) {
+        cout << "image(s) loaded in " << std::fixed << setprecision(3) << CycleTimer::currentSeconds() - start << " s" << endl;
+        start = CycleTimer::currentSeconds();
+    }
+
     // 2. test different dct & idct implementations
     auto [reconstructed_images, time_elapsed] = test(original_channels, filenames);
 
+    if (args.verbose) {
+        cout << "test(s) completed in " << std::fixed << setprecision(3) << CycleTimer::currentSeconds() - start << " s" << endl;
+        start = CycleTimer::currentSeconds();
+    }
+
     // 3. validate result(s)
     auto [validations, psnrs] = validate(original_images, reconstructed_images);
+
+    if (args.verbose) {
+        cout << "result(s) validated in " << std::fixed << setprecision(3) << CycleTimer::currentSeconds() - start << " s" << endl;
+        print_separator();
+    }
 
     // 4. print results
     print_args();
@@ -159,6 +185,9 @@ Experiment::test(const vector<util::image::Channel3d>& original_channels, const 
             time_elapsed[i][0][t] = util::system::timer(dcts[i], original_channels, dct_channels[i], args.num_threads);
             time_elapsed[i][1][t] = util::system::timer(idcts[i], dct_channels[i], reconstructed_channels[i], args.num_threads);
             util::image::merge(reconstructed_channels[i], reconstructed_images[i]);
+            if (args.verbose) {
+                cout << kMethodNames[i] << " test " << setw(log10(args.num_tests) + 1) << t + 1 << " finished" << endl;
+            }
         }
     }
 

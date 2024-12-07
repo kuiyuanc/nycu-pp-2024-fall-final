@@ -33,7 +33,11 @@ auto main(int argc, char* argv[]) -> int {
             }
         }
     } else {
+        double start{CycleTimer::currentSeconds()};
         experiment.run(args);
+        if (args.verbose) {
+            cout << "Total time: " << std::fixed << setprecision(3) << CycleTimer::currentSeconds() - start << " s" << endl;
+        }
     }
 
     return 0;
