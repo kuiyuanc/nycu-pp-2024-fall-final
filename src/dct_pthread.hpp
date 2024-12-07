@@ -155,7 +155,7 @@ vector<double> dct_1d(const vector<double>& signal) {
         for (int x = 0; x < N; ++x) {
             sum_value += signal[x] * util::image::cos_cache[u][x];
         }
-        result[u] = sum_value * ((u == 0) ? 1 / sqrt(N) : sqrt(2.0 / N));
+        result[u] = sum_value * util::image::alpha_cache[u];
     }
     return result;
 }
