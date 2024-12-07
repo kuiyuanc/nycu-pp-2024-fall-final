@@ -10,29 +10,38 @@ using namespace cv;
 
 namespace dct_omp {
 
-// 1D-IDCT
+// 1D-DCT
 vector<double> dct_1d_omp(const vector<double> &signal) {
 	const int N = signal.size();
 	vector<double> result(N, 0.0);
 
-	vector<vector<double>> cos_cache(N, vector<double>(N));
-	for (int u = 0; u < N; ++u) {
-		for (int x = 0; x < N; ++x) {
-			cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * N));
-		}
-	}
-
 	for (int u = 0; u < N; ++u) {
 		double sum_value = 0.0;
 		for (int x = 0; x < N; ++x) {
-			sum_value += signal[x] * cos_cache[u][x];
+			sum_value += signal[x] * cos(M_PI * (2 * x + 1) * u / (2 * N));
 		}
 		result[u] = sum_value * ((u == 0) ? 1 / sqrt(N) : sqrt(2.0 / N));
 	}
 	return result;
 }
 
-Mat dct_2d(const Mat &image) {
+// 1D-IDCT
+vector<double> idct_1d_omp(const vector<double> &signal) {
+    int N = signal.size();
+    vector<double> result(N, 0.0);
+    for (int x = 0; x < N; ++x) {
+        double sum_value = 0.0;
+        for (int u = 0; u < N; ++u) {
+            double alpha_u = (u == 0) ? 1.0 / sqrt(N) : sqrt(2.0 / N);
+            sum_value += alpha_u * signal[u] * cos(M_PI * (2 * x + 1) * u / (2 * N));
+        }
+        result[x] = sum_value;
+    }
+	return result;
+}
+
+// 2D-IDCT
+Mat dct_2d(const Mat& image) {
 	const int rows = image.rows;
 	const int cols = image.cols;
 	Mat dct_matrix(rows, cols, CV_32F);
@@ -95,33 +104,6 @@ void dct_4d(const vector<util::image::Channel3d> &originals, vector<util::image:
 	}
 }
 
-// 1D-IDCT
-vector<double> idct_1d_omp(const vector<double> &signal) {
-	const int N = signal.size();
-	vector<double> result(N, 0.0);
-
-	vector<vector<double>> cos_cache(N, vector<double>(N));
-	vector<double> alpha_cache(N);
-
-	for (int u = 0; u < N; ++u) {
-		for (int x = 0; x < N; ++x) {
-			cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * N));
-		}
-	}
-
-	for (int u = 0; u < N; ++u) {
-		alpha_cache[u] = (u == 0) ? 1.0 / sqrt(N) : sqrt(2.0 / N);
-	}
-
-	for (int x = 0; x < N; ++x) {
-		double sum_value = 0.0;
-		for (int u = 0; u < N; ++u) {
-			sum_value += alpha_cache[u] * signal[u] * cos_cache[u][x];
-		}
-		result[x] = sum_value;
-	}
-	return result;
-}
 
 // 2D-IDCT
 Mat idct_2d(const Mat &dct_matrix) {
