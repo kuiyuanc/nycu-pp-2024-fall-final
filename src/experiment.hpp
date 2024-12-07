@@ -63,10 +63,12 @@ struct ExperimentArgs {
 class Experiment {
 public:
     constexpr static short kLenSeparator{80};
-    constexpr static short kNumMethods{4};
+    // constexpr static short kNumMethods{4};
+    constexpr static short kNumMethods{2};
     constexpr static short kNumTests{2};
 
-    const array<string, kNumMethods> kMethodNames{"Serial", "Pthread", "OpenMP", "CUDA"};
+    // const array<string, kNumMethods> kMethodNames{"Serial", "Pthread", "OpenMP", "CUDA"};
+    const array<string, kNumMethods> kMethodNames{"Pthread", "OpenMP"};
     const array<string, kNumTests>   tests{"DCT", "IDCT"};
 
     Experiment() = default;
@@ -172,8 +174,10 @@ pair<vector<vector<Mat>>, vector<array<vector<double>, Experiment::kNumTests>>>
 Experiment::test(const vector<util::image::Channel3d>& original_channels, const vector<string>& filenames) {
     using BatchDCT                            = function<void(const vector<util::image::Channel3d>&, vector<util::image::Channel3d>&, const int&)>;
     using BatchIDCT                           = BatchDCT;
-    const array<BatchDCT, kNumMethods>  dcts  = {dct_serial::dct_4d, dct_pthread::dct_4d, dct_omp::dct_4d, dct_cuda::dct_4d};
-    const array<BatchIDCT, kNumMethods> idcts = {dct_serial::idct_4d, dct_pthread::idct_4d, dct_omp::idct_4d, dct_cuda::idct_4d};
+    // const array<BatchDCT, kNumMethods>  dcts  = {dct_serial::dct_4d, dct_pthread::dct_4d, dct_omp::dct_4d, dct_cuda::dct_4d};
+    // const array<BatchIDCT, kNumMethods> idcts = {dct_serial::idct_4d, dct_pthread::idct_4d, dct_omp::idct_4d, dct_cuda::idct_4d};
+    const array<BatchDCT, kNumMethods>  dcts  = {dct_pthread::dct_4d, dct_omp::dct_4d};
+    const array<BatchIDCT, kNumMethods> idcts = {dct_pthread::idct_4d, dct_omp::idct_4d};
 
     vector<vector<util::image::Channel3d>>   dct_channels(kNumMethods, vector<util::image::Channel3d>(args.num_images));
     vector<vector<util::image::Channel3d>>   reconstructed_channels(kNumMethods, vector<util::image::Channel3d>(args.num_images));
@@ -221,7 +225,7 @@ void Experiment::print(const vector<array<vector<double>, Experiment::kNumTests>
             cout << '\t' << tests[j] << ':' << endl;
             cout << "\t\tMean:\t\t\t\t" << setprecision(3) << mean << "  s" << endl;
             cout << "\t\t95% CI:\t\t\t[" << max(0.0, lower) << ", " << upper << "] s" << endl;
-            cout << "\t\tSpeedup ratio:\t\t\t" << setw(5) << setprecision(1) << util::statistics::mean(time_elapsed[0][j]) / util::statistics::mean(time_elapsed[i][j]) * 100 << "  %" << endl;
+            // cout << "\t\tSpeedup ratio:\t\t\t" << setw(5) << setprecision(1) << util::statistics::mean(time_elapsed[0][j]) / util::statistics::mean(time_elapsed[i][j]) * 100 << "  %" << endl;
         }
 
         cout << endl;
