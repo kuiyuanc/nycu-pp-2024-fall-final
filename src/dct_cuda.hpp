@@ -15,6 +15,8 @@ __global__ void idctKernel(float* input, float* output, int width, int height);
 
 namespace dct_cuda {
 
+void copy_cache_to_device();
+
 Mat  dct_2d(const Mat& image);
 Mat  idct_2d(const Mat& dct_matrix);
 void dct_3d(const util::image::Channel3d& original, util::image::Channel3d& dct);

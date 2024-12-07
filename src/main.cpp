@@ -12,6 +12,8 @@ auto main(int argc, char* argv[]) -> int {
         std::cerr << "Usage: ./bin/main --num-threads <threads>" << endl;
         exit(1);
     }
+    
+    dct_cuda::copy_cache_to_device();
 
     ExperimentArgs args(command_line_args);
     Experiment     experiment;
