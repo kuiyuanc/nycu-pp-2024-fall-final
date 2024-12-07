@@ -8,9 +8,6 @@
 
 using namespace cv;
 
-#define BLOCK_SIZE 8
-// fatest: 4
-
 #ifdef __CUDACC__  // Check if the file is being compiled by the CUDA compiler (nvcc)
 __global__ void dctKernel(float* input, float* output, int width, int height);
 __global__ void idctKernel(float* input, float* output, int width, int height);

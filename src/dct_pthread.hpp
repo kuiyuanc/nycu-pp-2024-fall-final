@@ -6,13 +6,12 @@
 
 #include <pthread.h>
 
+#include "lib/util.hpp"
+
 using namespace std;
 using namespace cv;
 
 namespace dct_pthread {
-
-constexpr int kBlockSize{8};
-
 // direction of 1D
 namespace direction {
 constexpr int kRow{0};
@@ -56,8 +55,7 @@ vector<double> idct_1d(const vector<double>& signal) {
     for (int x = 0; x < N; ++x) {
         double sum_value = 0.0;
         for (int u = 0; u < N; ++u) {
-            double alpha_u = (u == 0) ? 1.0 / sqrt(N) : sqrt(2.0 / N);
-            sum_value += alpha_u * signal[u] * cos(M_PI * (2 * x + 1) * u / (2 * N));
+            sum_value += util::image::alpha_cache[u] * signal[u] * util::image::cos_cache[u][x];
         }
         result[x] = sum_value;
     }
@@ -67,10 +65,10 @@ vector<double> idct_1d(const vector<double>& signal) {
 void* sub_idct_2d(void* thread) {
     long       thread_id{long(thread)};
     const Mat& dct_matrix{ro::idct::dct_channel};
-    for (int i = thread_id * ro::rows_per_thread; i < (thread_id + 1) * ro::rows_per_thread; i += kBlockSize) {
-        for (int j = 0; j < ro::cols; j += kBlockSize) {
-            const int block_rows = min(kBlockSize, ro::rows - i);
-            const int block_cols = min(kBlockSize, ro::cols - j);
+    for (int i = thread_id * ro::rows_per_thread; i < (thread_id + 1) * ro::rows_per_thread; i += util::image::kBlockSize) {
+        for (int j = 0; j < ro::cols; j += util::image::kBlockSize) {
+            const int block_rows = min(util::image::kBlockSize, ro::rows - i);
+            const int block_cols = min(util::image::kBlockSize, ro::cols - j);
 
             // Step 1: Apply 1D-IDCT to each column within the block
             for (int bj = 0; bj < block_cols; ++bj) {
@@ -106,19 +104,19 @@ Mat idct_2d(const Mat& dct_matrix, const int& num_threads_assigned = 4, const st
     ro::num_threads = num_threads_assigned;
     ro::partition   = partition_assigned;
 
-    ro::block_rows            = ro::rows / kBlockSize + (ro::rows % kBlockSize != 0);
+    ro::block_rows            = ro::rows / util::image::kBlockSize + (ro::rows % util::image::kBlockSize != 0);
     ro::block_rows_per_thread = ro::block_rows / ro::num_threads;
-    ro::rows_per_thread       = ro::block_rows_per_thread * kBlockSize;
+    ro::rows_per_thread       = ro::block_rows_per_thread * util::image::kBlockSize;
 
     vector<pthread_t> thread_handles(ro::num_threads - 1);
 
     for (long thread = 0; thread < ro::num_threads - 1; ++thread) {
         pthread_create(&thread_handles[thread], nullptr, sub_idct_2d, (void*)thread);
     }
-    for (int i = (ro::num_threads - 1) * ro::rows_per_thread; i < ro::rows; i += kBlockSize) {
-        for (int j = 0; j < ro::cols; j += kBlockSize) {
-            const int block_rows = min(kBlockSize, ro::rows - i);
-            const int block_cols = min(kBlockSize, ro::cols - j);
+    for (int i = (ro::num_threads - 1) * ro::rows_per_thread; i < ro::rows; i += util::image::kBlockSize) {
+        for (int j = 0; j < ro::cols; j += util::image::kBlockSize) {
+            const int block_rows = min(util::image::kBlockSize, ro::rows - i);
+            const int block_cols = min(util::image::kBlockSize, ro::cols - j);
 
             // Step 1: Apply 1D-IDCT to each column within the block
             for (int bj = 0; bj < block_cols; ++bj) {
@@ -155,7 +153,7 @@ vector<double> dct_1d(const vector<double>& signal) {
     for (int u = 0; u < N; ++u) {
         double sum_value = 0.0;
         for (int x = 0; x < N; ++x) {
-            sum_value += signal[x] * cos(M_PI * (2 * x + 1) * u / (2 * N));
+            sum_value += signal[x] * util::image::cos_cache[u][x];
         }
         result[u] = sum_value * ((u == 0) ? 1 / sqrt(N) : sqrt(2.0 / N));
     }
@@ -165,10 +163,10 @@ vector<double> dct_1d(const vector<double>& signal) {
 void* sub_dct_2d(void* thread) {
     long       thread_id{long(thread)};
     const Mat& image{ro::dct::channel_data};
-    for (int i = thread_id * ro::rows_per_thread; i < (thread_id + 1) * ro::rows_per_thread; i += kBlockSize) {
-        for (int j = 0; j < ro::cols; j += kBlockSize) {
-            const int block_rows = min(kBlockSize, ro::rows - i);
-            const int block_cols = min(kBlockSize, ro::cols - j);
+    for (int i = thread_id * ro::rows_per_thread; i < (thread_id + 1) * ro::rows_per_thread; i += util::image::kBlockSize) {
+        for (int j = 0; j < ro::cols; j += util::image::kBlockSize) {
+            const int block_rows = min(util::image::kBlockSize, ro::rows - i);
+            const int block_cols = min(util::image::kBlockSize, ro::cols - j);
 
             // Step 1: Apply 1D-DCT to each row within the block
             for (int bi = 0; bi < block_rows; ++bi) {
@@ -204,19 +202,19 @@ Mat dct_2d(const Mat& image, const int& num_threads_assigned = 4, const string& 
     ro::num_threads = num_threads_assigned;
     ro::partition   = partition_assigned;
 
-    ro::block_rows            = ro::rows / kBlockSize + (ro::rows % kBlockSize != 0);
+    ro::block_rows            = ro::rows / util::image::kBlockSize + (ro::rows % util::image::kBlockSize != 0);
     ro::block_rows_per_thread = ro::block_rows / ro::num_threads;
-    ro::rows_per_thread       = ro::block_rows_per_thread * kBlockSize;
+    ro::rows_per_thread       = ro::block_rows_per_thread * util::image::kBlockSize;
 
     vector<pthread_t> thread_handles(ro::num_threads - 1);
 
     for (long thread = 0; thread < ro::num_threads - 1; ++thread) {
         pthread_create(&thread_handles[thread], nullptr, sub_dct_2d, (void*)thread);
     }
-    for (int i = (ro::num_threads - 1) * ro::rows_per_thread; i < ro::rows; i += kBlockSize) {
-        for (int j = 0; j < ro::cols; j += kBlockSize) {
-            const int block_rows = min(kBlockSize, ro::rows - i);
-            const int block_cols = min(kBlockSize, ro::cols - j);
+    for (int i = (ro::num_threads - 1) * ro::rows_per_thread; i < ro::rows; i += util::image::kBlockSize) {
+        for (int j = 0; j < ro::cols; j += util::image::kBlockSize) {
+            const int block_rows = min(util::image::kBlockSize, ro::rows - i);
+            const int block_cols = min(util::image::kBlockSize, ro::cols - j);
 
             // Step 1: Apply 1D-DCT to each row within the block
             for (int bi = 0; bi < block_rows; ++bi) {

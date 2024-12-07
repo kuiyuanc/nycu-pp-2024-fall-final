@@ -3,10 +3,10 @@
 #include <cmath>
 #include <opencv2/opencv.hpp>
 
+#include "lib/util.hpp"
+
 using namespace std;
 using namespace cv;
-
-#define BLOCK_SIZE 8
 
 namespace dct_serial {
 
@@ -17,8 +17,7 @@ vector<double> idct_1d(const vector<double>& signal) {
     for (int x = 0; x < N; ++x) {
         double sum_value = 0.0;
         for (int u = 0; u < N; ++u) {
-            double alpha_u = (u == 0) ? 1.0 / sqrt(N) : sqrt(2.0 / N);
-            sum_value += alpha_u * signal[u] * cos(M_PI * (2 * x + 1) * u / (2 * N));
+            sum_value += util::image::alpha_cache[u] * signal[u] * util::image::cos_cache[u][x];
         }
         result[x] = sum_value;
     }
@@ -32,7 +31,7 @@ vector<double> dct_1d(const vector<double>& signal) {
     for (int u = 0; u < N; ++u) {
         double sum_value = 0.0;
         for (int x = 0; x < N; ++x) {
-            sum_value += signal[x] * cos(M_PI * (2 * x + 1) * u / (2 * N));
+            sum_value += signal[x] * util::image::cos_cache[u][x];
         }
         result[u] = sum_value * ((u == 0) ? 1.0 / sqrt(N) : sqrt(2.0 / N));
     }

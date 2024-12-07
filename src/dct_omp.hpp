@@ -6,8 +6,6 @@
 using namespace std;
 using namespace cv;
 
-#define BLOCK_SIZE 8
-
 namespace dct_omp {
 
 // 1D-DCT
@@ -15,10 +13,11 @@ vector<double> dct_1d_omp(const vector<double> &signal) {
 	const int N = signal.size();
 	vector<double> result(N, 0.0);
 
+
 	for (int u = 0; u < N; ++u) {
 		double sum_value = 0.0;
 		for (int x = 0; x < N; ++x) {
-			sum_value += signal[x] * cos(M_PI * (2 * x + 1) * u / (2 * N));
+			sum_value += signal[x] * util::image::cos_cache[u][x];
 		}
 		result[u] = sum_value * ((u == 0) ? 1 / sqrt(N) : sqrt(2.0 / N));
 	}
@@ -104,6 +103,20 @@ void dct_4d(const vector<util::image::Channel3d> &originals, vector<util::image:
 	}
 }
 
+// 1D-IDCT
+vector<double> idct_1d_omp(const vector<double> &signal) {
+	const int N = signal.size();
+	vector<double> result(N, 0.0);
+
+	for (int x = 0; x < N; ++x) {
+		double sum_value = 0.0;
+		for (int u = 0; u < N; ++u) {
+            sum_value += util::image::alpha_cache[u] * signal[u] * util::image::cos_cache[u][x];
+        }
+		result[x] = sum_value;
+	}
+	return result;
+}
 
 // 2D-IDCT
 Mat idct_2d(const Mat &dct_matrix) {
