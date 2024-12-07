@@ -49,8 +49,8 @@ static const array<double, kBlockSize> alpha_cache = []() {
 
 // PSNR Calculation
 double            calculate_psnr(const Mat& original, const Mat& reconstructed);
-Mat               load(string filename, const Shape& image_size);
-vector<Mat>       load(const vector<string>& filenames, const Shape& image_size);
+Mat               load(const string& filename);
+vector<Mat>       load(const vector<string>& filenames);
 vector<Channel3d> split(const vector<Mat>& images);
 void              merge(const vector<Channel3d>& channels, vector<Mat>& images);
 void              save(const string& datadir, const vector<string>& filenames, const vector<Mat>& images);

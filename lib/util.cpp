@@ -60,20 +60,19 @@ double util::image::calculate_psnr(const Mat& original, const Mat& reconstructed
     return 20.0 * log10(max_pixel / sqrt(mse));
 }
 
-Mat util::image::load(string filename, const Shape& image_size) {
+Mat util::image::load(const string& filename) {
     Mat image = imread(filename, IMREAD_COLOR);
     if (image.empty()) {
         cerr << "Error: Could not load image \'" << filename << '\'' << endl;
         exit(-1);
     }
-    resize(image, image, Size(image_size.first, image_size.second));
     return image;
 }
 
-vector<Mat> util::image::load(const vector<string>& filenames, const Shape& image_size) {
+vector<Mat> util::image::load(const vector<string>& filenames) {
     vector<Mat> images;
-    for_each(filenames.begin(), filenames.end(), [&images, &image_size](const string& filename) {
-        if (filename.rfind(".png") != string::npos) images.emplace_back(load(filename, image_size));
+    for_each(filenames.begin(), filenames.end(), [&images](const string& filename) {
+        if (filename.rfind(".png") != string::npos) images.emplace_back(load(filename));
     });
     return images;
 }
