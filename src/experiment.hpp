@@ -41,6 +41,17 @@ struct ExperimentArgs {
         tolerance = args.find("tolerance") != args.end() ? std::stod(args["tolerance"]) : 1e-5;
 
         verbose = args.find("verbose") != args.end();
+
+        method = args.find("method") != args.end() ? args["method"] : "serial";
+        if (method == "serial") {
+            method_index = 0;
+        } else if (method == "pthread") {
+            method_index = 1;
+        } else if (method == "omp") {
+            method_index = 2;
+        } else if (method == "cuda") {
+            method_index = 3;
+        }
     }
 
     string datadir{"data/original"};
@@ -58,18 +69,24 @@ struct ExperimentArgs {
     double tolerance{1e-5};
 
     bool verbose{false};
+
+    string method{"serial"};
+    int    method_index{0};
 };
 
 class Experiment {
 public:
     constexpr static short kLenSeparator{80};
-    // constexpr static short kNumMethods{4};
-    constexpr static short kNumMethods{2};
-    constexpr static short kNumTests{2};
+    constexpr static short kNumMethods{4};
+    constexpr static short kNumMeasurements{2};
 
-    // const array<string, kNumMethods> kMethodNames{"Serial", "Pthread", "OpenMP", "CUDA"};
-    const array<string, kNumMethods> kMethodNames{"Pthread", "OpenMP"};
-    const array<string, kNumTests>   tests{"DCT", "IDCT"};
+    const array<string, kNumMethods>      kMethodNames{"Serial", "Pthread", "OpenMP", "CUDA"};
+    const array<string, kNumMeasurements> kMeasurements{"DCT", "IDCT"};
+
+    using BatchDCT  = function<void(const vector<util::image::Channel3d>&, vector<util::image::Channel3d>&, const int&)>;
+    using BatchIDCT = BatchDCT;
+    const array<BatchDCT, kNumMethods>  dcts{dct_serial::dct_4d, dct_pthread::dct_4d, dct_omp::dct_4d, dct_cuda::dct_4d};
+    const array<BatchIDCT, kNumMethods> idcts{dct_serial::idct_4d, dct_pthread::idct_4d, dct_omp::idct_4d, dct_cuda::idct_4d};
 
     Experiment() = default;
     Experiment(map<string, string>& args) :
@@ -82,19 +99,23 @@ public:
     void set_args(map<string, string>& args);
 
 private:
-    tuple<vector<Mat>, vector<util::image::Channel3d>, vector<string>> load();
-    void save(const vector<string>& filenames, const vector<vector<util::image::Channel3d>>& dct_channels, const vector<vector<Mat>>& reconstructed_images);
-    pair<vector<vector<Mat>>, vector<array<vector<double>, kNumTests>>> test(const vector<util::image::Channel3d>& original_channels, const vector<string>& filenames);
-    pair<vector<bool>, vector<vector<double>>> validate(const vector<Mat>& original_images, const vector<vector<Mat>>& reconstructed_images);
-    void print(const vector<array<vector<double>, kNumTests>>& time_elapsed, const vector<bool>& validations, const vector<vector<double>>& psnrs) const;
+    void load();
+    void save();
+    void test();
+    void validate();
+    void print() const;
     void print_args() const;
     void print_separator() const;
 
     bool last_all_data{false};
     ExperimentArgs args;
-    vector<Mat> original_images;
-    vector<util::image::Channel3d> original_channels;
-    vector<string> filenames;
+
+    vector<string>                                      filenames;
+    vector<Mat>                                         original_images, dct_images, reconstructed_images;
+    vector<util::image::Channel3d>                      original_channels, dct_channels, reconstructed_channels;
+    array<vector<double>, Experiment::kNumMeasurements> time_elapsed;
+    vector<double>                                      psnrs;
+    bool                                                valid;
 };
 
 void Experiment::run() {
@@ -109,7 +130,7 @@ void Experiment::run() {
 
     // 1. load image(s)
     if (last_all_data != args.all_data || filenames.empty())
-        tie(original_images, original_channels, filenames) = load();
+        load();
 
     if (args.verbose) {
         cout << "image(s) loaded in " << std::fixed << setprecision(3) << CycleTimer::currentSeconds() - start << " s" << endl;
@@ -117,7 +138,7 @@ void Experiment::run() {
     }
 
     // 2. test different dct & idct implementations
-    auto [reconstructed_images, time_elapsed] = test(original_channels, filenames);
+    test();
 
     if (args.verbose) {
         cout << "test(s) completed in " << std::fixed << setprecision(3) << CycleTimer::currentSeconds() - start << " s" << endl;
@@ -125,7 +146,7 @@ void Experiment::run() {
     }
 
     // 3. validate result(s)
-    auto [validations, psnrs] = validate(original_images, reconstructed_images);
+    validate();
 
     if (args.verbose) {
         cout << "result(s) validated in " << std::fixed << setprecision(3) << CycleTimer::currentSeconds() - start << " s" << endl;
@@ -135,106 +156,84 @@ void Experiment::run() {
     // 4. print results
     print_args();
     print_separator();
-    print(time_elapsed, validations, psnrs);
+    print();
     print_separator();
 
     // 5. record last arguments
     last_all_data = args.all_data;
 }
 
-tuple<vector<Mat>, vector<util::image::Channel3d>, vector<string>> Experiment::load() {
-    vector<string> filenames(args.all_data ? util::system::get_filenames(args.datadir) : vector<string>{args.datadir + "/lena.png"});
+void Experiment::load() {
+    filenames = args.all_data ? util::system::get_filenames(args.datadir) : vector<string>{args.datadir + "/lena.png"};
 
-    vector<Mat> images(util::image::load(filenames, args.image_size));
+    original_images = util::image::load(filenames, args.image_size);
 
-    args.num_images = images.size();
+    args.num_images = original_images.size();
 
-    vector<util::image::Channel3d> channels(util::image::split(images));
+    original_channels = util::image::split(original_images);
 
     for_each(execution::par_unseq, filenames.begin(), filenames.end(), [&](string& filename) { filename = filename.substr(args.datadir.length() + 1); });
-
-    return {images, channels, filenames};
 }
 
-void Experiment::save(const vector<string>& filenames, const vector<vector<util::image::Channel3d>>& dct_channels, const vector<vector<Mat>>& reconstructed_images) {
+void Experiment::save() {
     if (args.save) {
-        vector<Mat> dct_images(args.num_images);
-        for (int i{0}; i < kNumMethods; ++i) {
-            util::image::merge(dct_channels[i], dct_images);
-            util::image::save("data/dct/" + kMethodNames[i], filenames, dct_images);
-            util::image::save("data/reconstructed/" + kMethodNames[i], filenames, reconstructed_images[i]);
-        }
+        dct_images.resize(args.num_images);
+        util::image::merge(dct_channels, dct_images);
+        util::image::save("data/dct/" + kMethodNames[args.method_index], filenames, dct_images);
+        util::image::save("data/reconstructed/" + kMethodNames[args.method_index], filenames, reconstructed_images);
         cout << "Intermediate data are saved to data/dct and data/reconstructed" << endl;
     } else {
         cout << "Intermediate data are discarded" << endl;
     }
 }
 
-pair<vector<vector<Mat>>, vector<array<vector<double>, Experiment::kNumTests>>>
-Experiment::test(const vector<util::image::Channel3d>& original_channels, const vector<string>& filenames) {
-    using BatchDCT                            = function<void(const vector<util::image::Channel3d>&, vector<util::image::Channel3d>&, const int&)>;
-    using BatchIDCT                           = BatchDCT;
-    // const array<BatchDCT, kNumMethods>  dcts  = {dct_serial::dct_4d, dct_pthread::dct_4d, dct_omp::dct_4d, dct_cuda::dct_4d};
-    // const array<BatchIDCT, kNumMethods> idcts = {dct_serial::idct_4d, dct_pthread::idct_4d, dct_omp::idct_4d, dct_cuda::idct_4d};
-    const array<BatchDCT, kNumMethods>  dcts  = {dct_pthread::dct_4d, dct_omp::dct_4d};
-    const array<BatchIDCT, kNumMethods> idcts = {dct_pthread::idct_4d, dct_omp::idct_4d};
-
-    vector<vector<util::image::Channel3d>>   dct_channels(kNumMethods, vector<util::image::Channel3d>(args.num_images));
-    vector<vector<util::image::Channel3d>>   reconstructed_channels(kNumMethods, vector<util::image::Channel3d>(args.num_images));
-    vector<array<vector<double>, kNumTests>> time_elapsed(kNumMethods, {vector<double>(args.num_tests), vector<double>(args.num_tests)});
-    vector<vector<Mat>>                      reconstructed_images(kNumMethods, vector<Mat>(args.num_images));
+void Experiment::test() {
+    for_each(time_elapsed.begin(), time_elapsed.end(), [&](vector<double>& times) { times.resize(args.num_tests); });
+    dct_channels.resize(args.num_images);
+    reconstructed_channels.resize(args.num_images);
+    reconstructed_images.resize(args.num_images);
 
     for (size_t t{0}; t < args.num_tests; ++t) {
-        for (size_t i{0}; i < kNumMethods; ++i) {
-            time_elapsed[i][0][t] = util::system::timer(dcts[i], original_channels, dct_channels[i], args.num_threads);
-            time_elapsed[i][1][t] = util::system::timer(idcts[i], dct_channels[i], reconstructed_channels[i], args.num_threads);
-            util::image::merge(reconstructed_channels[i], reconstructed_images[i]);
-            if (args.verbose) {
-                cout << kMethodNames[i] << " test " << setw(log10(args.num_tests) + 1) << t + 1 << " finished" << endl;
-            }
+        time_elapsed[0][t] = util::system::timer(dcts[args.method_index], original_channels, dct_channels, args.num_threads);
+        if (args.verbose) {
+            cout << "test " << setw(log10(args.num_tests) + 1) << t + 1 << " DCT finished" << endl;
+        }
+        time_elapsed[1][t] = util::system::timer(idcts[args.method_index], dct_channels, reconstructed_channels, args.num_threads);
+        if (args.verbose) {
+            cout << "test " << setw(log10(args.num_tests) + 1) << t + 1 << " IDCT finished" << endl;
+        }
+        util::image::merge(reconstructed_channels, reconstructed_images);
+        if (args.verbose) {
+            cout << "test " << setw(log10(args.num_tests) + 1) << t + 1 << " finished" << endl;
         }
     }
 
-    save(filenames, dct_channels, reconstructed_images);
-
-    return {reconstructed_images, time_elapsed};
+    save();
 }
 
-pair<vector<bool>, vector<vector<double>>> Experiment::validate(const vector<Mat>& original_images, const vector<vector<Mat>>& reconstructed_images) {
-    vector<bool>           validations(kNumMethods, true);
-    vector<vector<double>> psnrs(kNumMethods, vector<double>(args.num_images));
-    for (size_t i{0}; i < validations.size(); ++i) {
-        for (size_t j{0}; j < args.num_images; ++j) {
-            psnrs[i][j]    = util::image::calculate_psnr(original_images[j], reconstructed_images[i][j]);
-            validations[i] = validations[i] && 100.0 - psnrs[i][j] < args.tolerance;
-        }
+void Experiment::validate() {
+    valid = true;
+    psnrs.resize(args.num_images);
+    for (size_t i{0}; i < args.num_images; ++i) {
+        psnrs[i] = util::image::calculate_psnr(original_images[i], reconstructed_images[i]);
+        valid    = valid && 100.0 - psnrs[i] < args.tolerance;
     }
-    return {validations, psnrs};
 }
 
-void Experiment::print(const vector<array<vector<double>, Experiment::kNumTests>>& time_elapsed, const vector<bool>& validations, const vector<vector<double>>& psnrs) const {
+void Experiment::print() const {
     double lower, mean, upper;
 
     cout << std::showpoint << std::fixed;
 
-    for (size_t i{0}; i < kNumMethods; ++i) {
-        cout << kMethodNames[i] << ':' << endl;
-
-        for (size_t j{0}; j < kNumTests; ++j) {
-            tie(lower, mean, upper) = util::statistics::ci95(time_elapsed[i][j]);
-            cout << '\t' << tests[j] << ':' << endl;
-            cout << "\t\tMean:\t\t\t\t" << setprecision(3) << mean << "  s" << endl;
-            cout << "\t\t95% CI:\t\t\t[" << max(0.0, lower) << ", " << upper << "] s" << endl;
-            // cout << "\t\tSpeedup ratio:\t\t\t" << setw(5) << setprecision(1) << util::statistics::mean(time_elapsed[0][j]) / util::statistics::mean(time_elapsed[i][j]) * 100 << "  %" << endl;
-        }
-
-        cout << endl;
-        cout << "\tPSNR validation:\t" << (validations[i] ? "Pass" : "Fail") << endl;
-        cout << "\tPSNR mean:\t\t" << util::statistics::mean(psnrs[i]) << endl;
-
-        if (i < kNumMethods - 1)
-            cout << endl;
+    for (size_t i{0}; i < kNumMeasurements; ++i) {
+        tie(lower, mean, upper) = util::statistics::ci95(time_elapsed[i]);
+        cout << kMeasurements[i] << ':' << endl;
+        cout << "\tMean:\t\t\t\t" << setw(8) << setprecision(5) << mean << " s" << endl;
+        cout << "\t95% CI:\t\t\t[" << max(0.0, lower) << ", " << upper << "] s" << endl;
     }
+
+    cout << "PSNR validation:\t" << (valid ? "Pass" : "Fail") << endl;
+    cout << "PSNR mean:\t\t" << util::statistics::mean(psnrs) << endl;
 }
 
 void Experiment::print_args() const {
@@ -247,6 +246,7 @@ void Experiment::print_args() const {
     cout << "\tImage shape: (" << args.image_size.first << ", " << args.image_size.second << ")" << endl;
 
     cout << "Testing with following parameters:" << endl;
+    cout << "\tMethod: " << kMethodNames[args.method_index] << endl;
     cout << "\tUsing " << args.num_threads << " threads" << endl;
     cout << "\tNumber of tests = " << args.num_tests << endl;
 
