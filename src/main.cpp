@@ -8,8 +8,9 @@
 
 auto main(int argc, char* argv[]) -> int {
     auto command_line_args = util::system::parse_args(argc, argv);
-    if (command_line_args.find("num-threads") == command_line_args.end()) {
-        std::cerr << "Usage: ./bin/main --num-threads <threads>" << endl;
+    if (command_line_args.find("num-threads") == command_line_args.end() || command_line_args.find("method") == command_line_args.end()) {
+        std::cerr << "Usage: ./bin/main --method <method> --num-threads <threads>" << endl;
+        std::cerr << "Available methods: serial, pthread, omp, cuda" << endl;
         exit(1);
     }
 
