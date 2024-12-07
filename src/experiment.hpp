@@ -222,7 +222,7 @@ void Experiment::print() const {
     for (size_t i{0}; i < kNumMeasurements; ++i) {
         tie(lower, mean, upper) = util::statistics::ci95(time_elapsed[i]);
         cout << kMeasurements[i] << ':' << endl;
-        cout << "\tMean:\t\t\t\t" << setw(8) << setprecision(5) << mean << " s" << endl;
+        cout << "\tMean:\t\t\t" << setw(8) << setprecision(5) << mean << " s" << endl;
         cout << "\t95% CI:\t\t\t[" << max(0.0, lower) << ", " << upper << "] s" << endl;
     }
 
