@@ -29,6 +29,24 @@ constexpr short NUM_CHANNELS{3};
 using Shape     = pair<int, int>;
 using Channel3d = array<Mat, NUM_CHANNELS>;
 
+constexpr int                                             kBlockSize{8};
+static const array<array<double, kBlockSize>, kBlockSize> cos_cache = []() {
+    array<array<double, kBlockSize>, kBlockSize> cos_cache;
+    for (int u = 0; u < kBlockSize; ++u) {
+        for (int x = 0; x < kBlockSize; ++x) {
+            cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * kBlockSize));
+        }
+    }
+    return cos_cache;
+}();
+static const array<double, kBlockSize> alpha_cache = []() {
+    array<double, kBlockSize> alpha_cache;
+    for (int u = 0; u < kBlockSize; ++u) {
+        alpha_cache[u] = u ? sqrt(2.0 / kBlockSize) : 1.0 / sqrt(kBlockSize);
+    }
+    return alpha_cache;
+}();
+
 // PSNR Calculation
 double            calculate_psnr(const Mat& original, const Mat& reconstructed);
 Mat               load(string filename, const Shape& image_size);

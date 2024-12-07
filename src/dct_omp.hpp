@@ -10,17 +10,6 @@ using namespace cv;
 
 namespace dct_omp {
 
-static vector<vector<double>> cos_cache;
-
-void precompute_cos_cache(int N) {
-    cos_cache.resize(N, vector<double>(N));
-    for (int u = 0; u < N; ++u) {
-        for (int x = 0; x < N; ++x) {
-            cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * N));
-        }
-    }
-}
-
 // 1D-IDCT
 vector<double> dct_1d_omp(const vector<double> &signal) {
 	const int N = signal.size();
@@ -30,7 +19,7 @@ vector<double> dct_1d_omp(const vector<double> &signal) {
 	for (int u = 0; u < N; ++u) {
 		double sum_value = 0.0;
 		for (int x = 0; x < N; ++x) {
-			sum_value += signal[x] * cos_cache[u][x];
+			sum_value += signal[x] * util::image::cos_cache[u][x];
 		}
 		result[u] = sum_value * ((u == 0) ? 1 / sqrt(N) : sqrt(2.0 / N));
 	}
@@ -105,24 +94,11 @@ vector<double> idct_1d_omp(const vector<double> &signal) {
 	const int N = signal.size();
 	vector<double> result(N, 0.0);
 
-	vector<vector<double>> cos_cache(N, vector<double>(N));
-	vector<double> alpha_cache(N);
-
-	for (int u = 0; u < N; ++u) {
-		for (int x = 0; x < N; ++x) {
-			cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * N));
-		}
-	}
-
-	for (int u = 0; u < N; ++u) {
-		alpha_cache[u] = (u == 0) ? 1.0 / sqrt(N) : sqrt(2.0 / N);
-	}
-
 	for (int x = 0; x < N; ++x) {
 		double sum_value = 0.0;
 		for (int u = 0; u < N; ++u) {
-			sum_value += alpha_cache[u] * signal[u] * cos_cache[u][x];
-		}
+            sum_value += util::image::alpha_cache[u] * signal[u] * util::image::cos_cache[u][x];
+        }
 		result[x] = sum_value;
 	}
 	return result;
