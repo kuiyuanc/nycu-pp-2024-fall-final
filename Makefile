@@ -17,7 +17,7 @@ SRC = $(LIB_DIR)/util.cpp $(SRC_DIR)/dct_cuda.cu $(SRC_DIR)/main.cpp
 
 ifeq ($(MODE), local)
     NVCCFLAGS += `pkg-config --cflags opencv4`
-    LDFLAGS += `pkg-config --libs opencv4`
+    LDFLAGS += `pkg-config --libs opencv4` -ltbb
 else ifeq ($(MODE), server)
     LDFLAGS += -lopencv_core -lopencv_imgproc -lopencv_imgcodecs
 else
