@@ -12,12 +12,12 @@ auto main(int argc, char* argv[]) -> int {
         std::cerr << "Usage: ./bin/main --num-threads <threads>" << endl;
         exit(1);
     }
-    
+
     dct_cuda::copy_cache_to_device();
 
     ExperimentArgs args(command_line_args);
     Experiment     experiment;
-    
+
     if (command_line_args.find("customize") == command_line_args.end()) {
         array<bool, 2>               all_data{false, true};
         array<util::image::Shape, 3> image_sizes{
