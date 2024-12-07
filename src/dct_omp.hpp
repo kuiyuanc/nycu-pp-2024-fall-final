@@ -10,17 +10,22 @@ using namespace cv;
 
 namespace dct_omp {
 
+static vector<vector<double>> cos_cache;
+
+void precompute_cos_cache(int N) {
+    cos_cache.resize(N, vector<double>(N));
+    for (int u = 0; u < N; ++u) {
+        for (int x = 0; x < N; ++x) {
+            cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * N));
+        }
+    }
+}
+
 // 1D-IDCT
 vector<double> dct_1d_omp(const vector<double> &signal) {
 	const int N = signal.size();
 	vector<double> result(N, 0.0);
 
-	vector<vector<double>> cos_cache(N, vector<double>(N));
-	for (int u = 0; u < N; ++u) {
-		for (int x = 0; x < N; ++x) {
-			cos_cache[u][x] = cos(M_PI * (2 * x + 1) * u / (2 * N));
-		}
-	}
 
 	for (int u = 0; u < N; ++u) {
 		double sum_value = 0.0;

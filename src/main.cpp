@@ -12,10 +12,11 @@ auto main(int argc, char* argv[]) -> int {
         std::cerr << "Usage: ./bin/main --num-threads <threads>" << endl;
         exit(1);
     }
-
+    
     ExperimentArgs args(command_line_args);
     Experiment     experiment;
-
+    dct_omp::precompute_cos_cache(8);
+    dct_serial::precompute_cos_cache(8);
     if (command_line_args.find("customize") == command_line_args.end()) {
         array<bool, 2>               all_data{false, true};
         array<util::image::Shape, 3> image_sizes{
