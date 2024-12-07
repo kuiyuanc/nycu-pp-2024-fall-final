@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <execution>
 #include <functional>
@@ -16,6 +17,9 @@
 #include "dct_omp.hpp"
 #include "dct_pthread.hpp"
 #include "dct_serial.hpp"
+
+using namespace std;
+using namespace cv;
 
 struct ExperimentArgs {
     ExperimentArgs() = default;
@@ -101,11 +105,11 @@ private:
     void print_args() const;
     void print_separator() const;
 
-    bool last_all_data{false};
     ExperimentArgs args;
+    util::image::Shape last_image_size{0, 0};
 
     vector<string>                                      filenames;
-    vector<Mat>                                         original_images, dct_images, reconstructed_images;
+    vector<Mat>                                         pure_images, original_images, dct_images, reconstructed_images;
     vector<util::image::Channel3d>                      original_channels, dct_channels, reconstructed_channels;
     array<vector<double>, Experiment::kNumMeasurements> time_elapsed;
     vector<double>                                      psnrs;
@@ -123,8 +127,7 @@ void Experiment::run() {
     }
 
     // 1. load image(s)
-    if (last_all_data != args.all_data || filenames.empty())
-        load();
+    load();
 
     if (args.verbose) {
         cout << "image(s) loaded in " << std::fixed << setprecision(3) << CycleTimer::currentSeconds() - start << " s" << endl;
@@ -153,20 +156,31 @@ void Experiment::run() {
     print();
     print_separator();
 
-    // 5. record last arguments
-    last_all_data = args.all_data;
+
+    last_image_size = args.image_size;
+
 }
 
 void Experiment::load() {
-    filenames = args.all_data ? util::system::get_filenames(args.datadir) : vector<string>{args.datadir + "/lena.png"};
+    if (pure_images.empty()) {
+        filenames = util::system::get_filenames(args.datadir);
+        sort(filenames.begin(), filenames.end());
 
-    original_images = util::image::load(filenames, args.image_size);
+        pure_images = util::image::load(filenames);
 
+        for_each(execution::par_unseq, filenames.begin(), filenames.end(), [&](string& filename) { filename = filename.substr(args.datadir.length() + 1); });
+    }
+
+    original_images.resize(args.all_data ? pure_images.size() : 1);
     args.num_images = original_images.size();
 
-    original_channels = util::image::split(original_images);
+    if (last_image_size != args.image_size) {
+        for (size_t i{0}; i < original_images.size(); ++i) {
+            resize(pure_images[i], original_images[i], Size(args.image_size.first, args.image_size.second));
+        }
+    }
 
-    for_each(execution::par_unseq, filenames.begin(), filenames.end(), [&](string& filename) { filename = filename.substr(args.datadir.length() + 1); });
+    original_channels = util::image::split(original_images);
 }
 
 void Experiment::save() {
@@ -235,7 +249,7 @@ void Experiment::print_args() const {
     if (args.all_data) {
         cout << '\t' << args.num_images << " images loaded." << endl;
     } else {
-        cout << "\tLoading lena.png only" << endl;
+        cout << "\tLoading " << filenames.front() << " only" << endl;
     }
     cout << "\tImage shape: (" << args.image_size.first << ", " << args.image_size.second << ")" << endl;
 
