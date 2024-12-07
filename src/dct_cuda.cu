@@ -8,8 +8,30 @@
 
 using namespace cv;
 
-__device__ float alpha(int u, int N) {
-    return (u == 0) ? sqrt(1.0 / N) : sqrt(2.0 / N);
+// Change device constants to float
+__constant__ float d_cos_cache[BLOCK_SIZE][BLOCK_SIZE];
+__constant__ float d_alpha_cache[BLOCK_SIZE];
+
+namespace dct_cuda {
+
+void copy_cache_to_device() {
+    // Convert cos_cache to float
+    float h_cos_cache[BLOCK_SIZE][BLOCK_SIZE];
+    for (int i = 0; i < BLOCK_SIZE; ++i) {
+        for (int j = 0; j < BLOCK_SIZE; ++j) {
+            h_cos_cache[i][j] = static_cast<float>(util::image::cos_cache[i][j]);
+        }
+    }
+
+    // Convert alpha_cache to float
+    float h_alpha_cache[BLOCK_SIZE];
+    for (int i = 0; i < BLOCK_SIZE; ++i) {
+        h_alpha_cache[i] = static_cast<float>(util::image::alpha_cache[i]);
+    }
+
+    // Copy to device constant memory
+    cudaMemcpyToSymbol(d_cos_cache, h_cos_cache, sizeof(d_cos_cache));
+    cudaMemcpyToSymbol(d_alpha_cache, h_alpha_cache, sizeof(d_alpha_cache));
 }
 
 __global__ void dctKernel(float* input, float* output, int width, int height) {
@@ -27,11 +49,10 @@ __global__ void dctKernel(float* input, float* output, int width, int height) {
     if (threadIdx.x < BLOCK_SIZE && threadIdx.y < BLOCK_SIZE) {
         for (int i = 0; i < BLOCK_SIZE; ++i) {
             for (int j = 0; j < BLOCK_SIZE; ++j) {
-                result += block[i][j] * cos((2 * i + 1) * threadIdx.y * M_PI / (2 * BLOCK_SIZE)) *
-                          cos((2 * j + 1) * threadIdx.x * M_PI / (2 * BLOCK_SIZE));
+                result += block[i][j] * d_cos_cache[threadIdx.y][i] * d_cos_cache[threadIdx.x][j];
             }
         }
-        result *= alpha(threadIdx.y, BLOCK_SIZE) * alpha(threadIdx.x, BLOCK_SIZE);
+        result *= d_alpha_cache[threadIdx.y] * d_alpha_cache[threadIdx.x];
     }
 
     if (x < width && y < height) {
@@ -54,9 +75,8 @@ __global__ void idctKernel(float* input, float* output, int width, int height) {
     if (threadIdx.x < BLOCK_SIZE && threadIdx.y < BLOCK_SIZE) {
         for (int i = 0; i < BLOCK_SIZE; ++i) {
             for (int j = 0; j < BLOCK_SIZE; ++j) {
-                result += alpha(i, BLOCK_SIZE) * alpha(j, BLOCK_SIZE) *
-                          block[i][j] * cos((2 * threadIdx.y + 1) * i * M_PI / (2 * BLOCK_SIZE)) *
-                          cos((2 * threadIdx.x + 1) * j * M_PI / (2 * BLOCK_SIZE));
+                result += d_alpha_cache[i] * d_alpha_cache[j] *
+                          block[i][j] * d_cos_cache[i][threadIdx.y] * d_cos_cache[j][threadIdx.x];
             }
         }
     }
@@ -66,7 +86,7 @@ __global__ void idctKernel(float* input, float* output, int width, int height) {
     }
 }
 
-Mat dct_cuda::dct_2d(const Mat& image) {
+Mat dct_2d(const Mat& image) {
     const int rows = image.rows;
     const int cols = image.cols;
 
@@ -93,7 +113,7 @@ Mat dct_cuda::dct_2d(const Mat& image) {
     return dct_matrix;
 }
 
-Mat dct_cuda::idct_2d(const Mat& dct_matrix) {
+Mat idct_2d(const Mat& dct_matrix) {
     const int rows = dct_matrix.rows;
     const int cols = dct_matrix.cols;
 
@@ -120,26 +140,28 @@ Mat dct_cuda::idct_2d(const Mat& dct_matrix) {
     return reconstructed_image;
 }
 
-void dct_cuda::dct_3d(const util::image::Channel3d& original, util::image::Channel3d& dct) {
-    for (int i{0}; i < 3; ++i) {
+void dct_3d(const util::image::Channel3d& original, util::image::Channel3d& dct) {
+    for (int i = 0; i < 3; ++i) {
         dct[i] = dct_2d(original[i]);
     }
 }
 
-void dct_cuda::idct_3d(const util::image::Channel3d& dct, util::image::Channel3d& reconstructed) {
-    for (int i{0}; i < 3; ++i) {
+void idct_3d(const util::image::Channel3d& dct, util::image::Channel3d& reconstructed) {
+    for (int i = 0; i < 3; ++i) {
         reconstructed[i] = idct_2d(dct[i]);
     }
 }
 
-void dct_cuda::dct_4d(const vector<util::image::Channel3d>& originals, vector<util::image::Channel3d>& dcts, const int& num_threads_assigned) {
-    for (int i{0}; i < originals.size(); ++i) {
+void dct_4d(const std::vector<util::image::Channel3d>& originals, std::vector<util::image::Channel3d>& dcts, const int& num_threads_assigned) {
+    for (size_t i = 0; i < originals.size(); ++i) {
         dct_3d(originals[i], dcts[i]);
     }
 }
 
-void dct_cuda::idct_4d(const vector<util::image::Channel3d>& dcts, vector<util::image::Channel3d>& reconstructeds, const int& num_threads_assigned) {
-    for (int i{0}; i < dcts.size(); ++i) {
+void idct_4d(const std::vector<util::image::Channel3d>& dcts, std::vector<util::image::Channel3d>& reconstructeds, const int& num_threads_assigned) {
+    for (size_t i = 0; i < dcts.size(); ++i) {
         idct_3d(dcts[i], reconstructeds[i]);
     }
 }
+
+}  // namespace dct_cuda
