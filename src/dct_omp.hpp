@@ -45,7 +45,7 @@ Mat dct_2d(const Mat& image) {
 	Mat dct_matrix(rows, cols, CV_32F);
 
 	// Step 1: Block-wise row DCT
-#pragma omp parallel for collapse(2) schedule(dynamic)
+#pragma omp parallel for collapse(2)
 	for (int i = 0; i < rows; i += BLOCK_SIZE) {
 		for (int j = 0; j < cols; j += BLOCK_SIZE) {
 			const int block_rows = min(BLOCK_SIZE, rows - i);
@@ -61,22 +61,12 @@ Mat dct_2d(const Mat& image) {
 					dct_matrix.at<float>(i + bi, j + bj) = dct_row[bj];
 				}
 			}
-		}
-	}
 
-	Mat temp_matrix = dct_matrix.clone();
-
-	// Step 2: Block-wise column DCT
-#pragma omp parallel for collapse(2) schedule(dynamic)
-	for (int j = 0; j < cols; j += BLOCK_SIZE) {
-		for (int i = 0; i < rows; i += BLOCK_SIZE) {
-			const int block_rows = min(BLOCK_SIZE, rows - i);
-			const int block_cols = min(BLOCK_SIZE, cols - j);
-
+			// Step 2: Block-wise column DCT
 			for (int bj = 0; bj < block_cols; ++bj) {
 				vector<double> col(block_rows);
 				for (int bi = 0; bi < block_rows; ++bi) {
-					col[bi] = temp_matrix.at<float>(i + bi, j + bj);
+					col[bi] = dct_matrix.at<float>(i + bi, j + bj);
 				}
 
 				vector<double> dct_col = dct_1d_omp(col);
@@ -84,9 +74,9 @@ Mat dct_2d(const Mat& image) {
 					dct_matrix.at<float>(i + bi, j + bj) = dct_col[bi];
 				}
 			}
+
 		}
 	}
-
 	return dct_matrix;
 }
 
@@ -108,13 +98,12 @@ Mat idct_2d(const Mat &dct_matrix) {
 	const int cols = dct_matrix.cols;
 	Mat image(rows, cols, CV_32F);
 
-	// Step 1: Block-wise column IDCT
-#pragma omp parallel for collapse(2) schedule(dynamic)
+#pragma omp parallel for collapse(2) 
 	for (int j = 0; j < cols; j += BLOCK_SIZE) {
 		for (int i = 0; i < rows; i += BLOCK_SIZE) {
 			const int block_rows = min(BLOCK_SIZE, rows - i);
 			const int block_cols = min(BLOCK_SIZE, cols - j);
-
+			// Step 1: Block-wise column IDCT
 			for (int bj = 0; bj < block_cols; ++bj) {
 				vector<double> col(block_rows);
 				for (int bi = 0; bi < block_rows; ++bi) {
@@ -126,18 +115,7 @@ Mat idct_2d(const Mat &dct_matrix) {
 					image.at<float>(i + bi, j + bj) = idct_col[bi];
 				}
 			}
-		}
-	}
-
-	Mat temp_image = image.clone();
-
-	// Step 2: Block-wise row IDCT
-#pragma omp parallel for collapse(2) schedule(dynamic)
-	for (int i = 0; i < rows; i += BLOCK_SIZE) {
-		for (int j = 0; j < cols; j += BLOCK_SIZE) {
-			const int block_rows = min(BLOCK_SIZE, rows - i);
-			const int block_cols = min(BLOCK_SIZE, cols - j);
-
+			// Step 2: Block-wise row IDCT
 			for (int bi = 0; bi < block_rows; ++bi) {
 				vector<double> row(block_cols);
 				for (int bj = 0; bj < block_cols; ++bj) {
@@ -151,7 +129,6 @@ Mat idct_2d(const Mat &dct_matrix) {
 			}
 		}
 	}
-
 	return image;
 }
 
