@@ -38,7 +38,7 @@ vector<double> idct_1d_omp(const vector<double> &signal) {
 	return result;
 }
 
-// 2D-IDCT
+// 2D-DCT
 Mat dct_2d(const Mat& image) {
 	const int rows = image.rows;
 	const int cols = image.cols;
@@ -50,6 +50,7 @@ Mat dct_2d(const Mat& image) {
 		for (int j = 0; j < cols; j += BLOCK_SIZE) {
 			const int block_rows = min(BLOCK_SIZE, rows - i);
 			const int block_cols = min(BLOCK_SIZE, cols - j);
+			
 			for (int bi = 0; bi < block_rows; ++bi) {
 				vector<double> row(block_cols);
 				for (int bj = 0; bj < block_cols; ++bj) {
@@ -74,7 +75,6 @@ Mat dct_2d(const Mat& image) {
 					dct_matrix.at<float>(i + bi, j + bj) = dct_col[bi];
 				}
 			}
-
 		}
 	}
 	return dct_matrix;
@@ -103,6 +103,7 @@ Mat idct_2d(const Mat &dct_matrix) {
 		for (int i = 0; i < rows; i += BLOCK_SIZE) {
 			const int block_rows = min(BLOCK_SIZE, rows - i);
 			const int block_cols = min(BLOCK_SIZE, cols - j);
+
 			// Step 1: Block-wise column IDCT
 			for (int bj = 0; bj < block_cols; ++bj) {
 				vector<double> col(block_rows);
@@ -115,11 +116,12 @@ Mat idct_2d(const Mat &dct_matrix) {
 					image.at<float>(i + bi, j + bj) = idct_col[bi];
 				}
 			}
+
 			// Step 2: Block-wise row IDCT
 			for (int bi = 0; bi < block_rows; ++bi) {
 				vector<double> row(block_cols);
 				for (int bj = 0; bj < block_cols; ++bj) {
-					row[bj] = temp_image.at<float>(i + bi, j + bj);
+					row[bj] = dct_matrix.at<float>(i + bi, j + bj);
 				}
 
 				vector<double> idct_row = idct_1d_omp(row);
