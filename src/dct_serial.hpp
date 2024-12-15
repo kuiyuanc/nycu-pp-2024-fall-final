@@ -47,42 +47,34 @@ Mat dct_2d(const Mat& image) {
     // Process each 8x8 block
     for (int i = 0; i < rows; i += BLOCK_SIZE) {
         for (int j = 0; j < cols; j += BLOCK_SIZE) {
+            const int block_rows = min(BLOCK_SIZE, rows - i);
+            const int block_cols = min(BLOCK_SIZE, cols - j);
+
             // Step 1: Apply 1D-DCT to each row within the block
-            for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
-                if (i + bi >= rows) break;  // Boundary check
-                vector<double> row(BLOCK_SIZE, 0.0);
-                for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
-                    if (j + bj < cols) {
-                        row[bj] = image.at<float>(i + bi, j + bj);
-                    }
+            for (int bi = 0; bi < block_rows; ++bi) {
+                vector<double> row(block_cols, 0.0);
+                for (int bj = 0; bj < block_cols; ++bj) {
+                    row[bj] = image.at<float>(i + bi, j + bj);
                 }
                 vector<double> dct_row = dct_1d(row);
-                for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
-                    if (j + bj < cols) {
-                        dct_matrix.at<float>(i + bi, j + bj) = dct_row[bj];
-                    }
+                for (int bj = 0; bj < block_cols; ++bj) {
+                    dct_matrix.at<float>(i + bi, j + bj) = dct_row[bj];
                 }
             }
 
             // Step 2: Apply 1D-DCT to each column within the block
-            for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
-                if (j + bj >= cols) break;  // Boundary check
-                vector<double> col(BLOCK_SIZE, 0.0);
-                for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
-                    if (i + bi < rows) {
-                        col[bi] = dct_matrix.at<float>(i + bi, j + bj);
-                    }
+            for (int bj = 0; bj < block_cols; ++bj) {
+                vector<double> col(block_rows, 0.0);
+                for (int bi = 0; bi < block_rows; ++bi) {
+                    col[bi] = dct_matrix.at<float>(i + bi, j + bj);
                 }
                 vector<double> dct_col = dct_1d(col);
-                for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
-                    if (i + bi < rows) {
-                        dct_matrix.at<float>(i + bi, j + bj) = dct_col[bi];
-                    }
+                for (int bi = 0; bi < block_rows; ++bi) {
+                    dct_matrix.at<float>(i + bi, j + bj) = dct_col[bi];
                 }
             }
         }
     }
-
     return dct_matrix;
 }
 
@@ -95,37 +87,30 @@ Mat idct_2d(const Mat& dct_matrix) {
     // Process each 8x8 block
     for (int i = 0; i < rows; i += BLOCK_SIZE) {
         for (int j = 0; j < cols; j += BLOCK_SIZE) {
+            const int block_rows = min(BLOCK_SIZE, rows - i);
+            const int block_cols = min(BLOCK_SIZE, cols - j);
+
             // Step 1: Apply 1D-IDCT to each column within the block
-            for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
-                if (j + bj >= cols) break;  // Boundary check
-                vector<double> col(BLOCK_SIZE, 0.0);
-                for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
-                    if (i + bi < rows) {
-                        col[bi] = dct_matrix.at<float>(i + bi, j + bj);
-                    }
+            for (int bj = 0; bj < block_cols; ++bj) {
+                vector<double> col(block_rows, 0.0);
+                for (int bi = 0; bi < block_rows; ++bi) {
+                    col[bi] = dct_matrix.at<float>(i + bi, j + bj);
                 }
                 vector<double> idct_col = idct_1d(col);
-                for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
-                    if (i + bi < rows) {
-                        image.at<float>(i + bi, j + bj) = idct_col[bi];
-                    }
+                for (int bi = 0; bi < block_rows; ++bi) {
+                    image.at<float>(i + bi, j + bj) = idct_col[bi];
                 }
             }
 
             // Step 2: Apply 1D-IDCT to each row within the block
-            for (int bi = 0; bi < BLOCK_SIZE; ++bi) {
-                if (i + bi >= rows) break;  // Boundary check
-                vector<double> row(BLOCK_SIZE, 0.0);
-                for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
-                    if (j + bj < cols) {
-                        row[bj] = image.at<float>(i + bi, j + bj);
-                    }
+            for (int bi = 0; bi < block_rows; ++bi) {
+                vector<double> row(block_cols, 0.0);
+                for (int bj = 0; bj < block_cols; ++bj) {
+                    row[bj] = image.at<float>(i + bi, j + bj);
                 }
                 vector<double> idct_row = idct_1d(row);
-                for (int bj = 0; bj < BLOCK_SIZE; ++bj) {
-                    if (j + bj < cols) {
-                        image.at<float>(i + bi, j + bj) = idct_row[bj];
-                    }
+                for (int bj = 0; bj < block_cols; ++bj) {
+                    image.at<float>(i + bi, j + bj) = idct_row[bj];
                 }
             }
         }
