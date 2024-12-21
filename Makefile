@@ -9,7 +9,7 @@ BIN_DIR = bin
 $(shell mkdir -p $(BIN_DIR))
 
 NVCC = nvcc
-NVCCFLAGS = -arch=sm_60 -Xcompiler -fopenmp -O3 -lpthread
+NVCCFLAGS = -arch=sm_60 -Xcompiler -fopenmp -O3 
 LDFLAGS =
 
 TARGET = $(BIN_DIR)/main
@@ -17,12 +17,13 @@ SRC = $(LIB_DIR)/util.cpp $(SRC_DIR)/dct_cuda.cu $(SRC_DIR)/main.cpp
 
 ifeq ($(MODE), local)
     NVCCFLAGS += `pkg-config --cflags opencv4`
-    LDFLAGS += `pkg-config --libs opencv4` -ltbb
+    LDFLAGS += `pkg-config --libs opencv4` -ltbb -diag-suppress=611
 else ifeq ($(MODE), server)
     LDFLAGS += -lopencv_core -lopencv_imgproc -lopencv_imgcodecs
 else
     $(error Unknown MODE: $(MODE))
 endif
+
 
 all: $(TARGET)
 
