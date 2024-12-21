@@ -32,7 +32,7 @@
 *.app
 
 # Input Data
-*.png
+# *.png
 
 # Output Data
 *.txt
