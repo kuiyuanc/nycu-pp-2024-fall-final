@@ -11,12 +11,12 @@
 #include <omp.h>
 #include <opencv2/opencv.hpp>
 
-#include "lib/util.hpp"
+#include "../lib/util.hpp"
 
-#include "dct_cuda.hpp"
-#include "dct_omp.hpp"
-#include "dct_pthread.hpp"
-#include "dct_serial.hpp"
+#include "./dct_cuda.hpp"
+#include "./dct_omp.hpp"
+#include "./dct_pthread.hpp"
+#include "./dct_serial.hpp"
 
 using namespace std;
 using namespace cv;

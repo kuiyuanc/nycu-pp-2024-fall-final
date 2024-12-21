@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "experiment.hpp"
-#include "lib/util.hpp"
+#include "../lib/util.hpp"
 
 auto main(int argc, char* argv[]) -> int {
     auto command_line_args = util::system::parse_args(argc, argv);

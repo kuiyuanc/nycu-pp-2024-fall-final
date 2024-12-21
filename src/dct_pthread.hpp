@@ -6,7 +6,7 @@
 
 #include <pthread.h>
 
-#include "lib/util.hpp"
+#include "../lib/util.hpp"
 
 using namespace std;
 using namespace cv;

@@ -4,7 +4,7 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 
-#include "lib/util.hpp"
+#include "../lib/util.hpp"
 
 using namespace cv;
 
