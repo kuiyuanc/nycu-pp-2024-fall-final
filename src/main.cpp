@@ -16,13 +16,14 @@ auto main(int argc, char* argv[]) -> int {
 
     ExperimentArgs args(command_line_args);
     Experiment     experiment;
+    bool full = command_line_args.find("full") != command_line_args.end();
 
     if (args.method == "cuda") {
         dct_cuda::copy_cache_to_device();
     }
 
     if (command_line_args.find("customize") == command_line_args.end()) {
-        array<bool, 2>               all_data{false, true};
+        array<bool, 2>               all_data{ false, full };
         array<util::image::Shape, 3> image_sizes{
             util::image::Shape{ 512,  512},
             util::image::Shape{1920, 1080},
